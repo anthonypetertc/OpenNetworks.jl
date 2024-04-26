@@ -1,7 +1,7 @@
 using Test
 using OpenSystemsTools
 using ITensors
-using OpenBP: VectorizationNetworks, Utils, Channels
+using OpenNetworks: VectorizationNetworks, Utils, Channels
 using NamedGraphs: named_grid
 using Random
 using LinearAlgebra
@@ -19,7 +19,7 @@ vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 swapprime = Utils.swapprime
 
 
-#include("/home/tony/OpenBP.jl/src/utils/channel.jl")
+#include("/home/tony/OpenNetworks.jl/src/utils/channel.jl")
 
 
 ITensors.op(::OpName"Id",::SiteType"Qubit") = [1 0 

@@ -1,6 +1,6 @@
 
 using Test
-using OpenBP
+using OpenNetworks
 
 
 @testset "Channel tests" begin

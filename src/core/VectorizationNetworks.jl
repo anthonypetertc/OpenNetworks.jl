@@ -5,7 +5,7 @@ using ITensorNetworks: AbstractITensorNetwork, ITensorNetworks, ITensorNetwork, 
 using ITensors: ITensor, prime, dag, combiner, inds, inner, op, randomITensor, delta, ITensors, Index
 import ITensors: outer
 using OpenSystemsTools: Vectorization
-using OpenBP: Utils, VDMNetworks
+using OpenNetworks: Utils, VDMNetworks
 import Base: show, repr
 
 vectorizer = Vectorization.vectorizer

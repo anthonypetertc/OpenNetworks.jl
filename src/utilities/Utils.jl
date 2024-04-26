@@ -4,7 +4,7 @@ export swapprime, swapprime!, innerprod, outer, trace
 using ITensors
 using ITensorNetworks: AbstractITensorNetwork, siteinds, ⊗, prime, dag, contract, ITensorNetwork, ITensorNetworks, edges
 import ITensors: swapprime, swapprime!, outer, siteinds
-using OpenBP: VDMNetworks
+using OpenNetworks: VDMNetworks
 
 VDMNetwork = VDMNetworks.VDMNetwork
 

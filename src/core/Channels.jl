@@ -4,7 +4,7 @@ export Channel, depolarizing_channel, apply, opdouble
 using ITensors
 import OpenSystemsTools: Vectorization
 using ITensorNetworks: AbstractITensorNetwork, ITensorNetwork, ITensorNetworks
-using OpenBP: VectorizationNetworks, Utils, VDMNetworks
+using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
 
 vectorizer = Vectorization.vectorizer
 vectorizer_input = Vectorization.vectorizer_input

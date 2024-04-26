@@ -2,7 +2,7 @@ using Test
 using OpenSystemsTools: Vectorization
 using ITensorNetworks: ⊗, prime, dag, ITensorNetwork, ITensorNetworks, siteinds, contract
 using ITensors: ITensors, op
-using OpenBP: VectorizationNetworks, Utils
+using OpenNetworks: VectorizationNetworks, Utils
 using NamedGraphs: named_grid
 using Random
 using LinearAlgebra
