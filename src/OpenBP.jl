@@ -1,4 +1,4 @@
-module OpenBP
+module OpenNetworks
 
 export Channels
 export VectorizationNetworks
