@@ -7,6 +7,10 @@ using OpenBP
     include("test_channel.jl")
 end
 
+@testset "Vectorization tests" begin
+    include("test_vectorize_density_matrix.jl")
+end
+
 
 
 

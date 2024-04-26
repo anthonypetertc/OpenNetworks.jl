@@ -1,13 +1,22 @@
 using Test
 using OpenSystemsTools
 using ITensors
-import OpenBP: Channels
+using OpenBP: VectorizationNetworks, Utils, Channels
+using NamedGraphs: named_grid
+using Random
+using LinearAlgebra
+using Graphs
+using ITensorNetworks
 
 depolarizing_channel = Channels.depolarizing_channel
 opdouble = Channels.opdouble
 apply = Channels.apply
 Channel = Channels.Channel
 find_site = Channels.find_site
+
+vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
+#opdouble = VectorizationBP.opdouble
+swapprime = Utils.swapprime
 
 
 #include("/home/tony/OpenBP.jl/src/utils/channel.jl")
@@ -106,5 +115,114 @@ end;
         dm = reduce(+, [transpose(conj(K))*dm*K for K in kraus_matrices])
     end
     reshaped_dm = reshape(permutedims(reshape(dm, (2,2,2,2)), [1, 3, 2, 4]), (4,4))
-    @test reshape(contract(ρ2).tensor, (4,4))≈ reshaped_dm
+    @test reshape(ITensors.contract(ρ2).tensor, (4,4))≈ reshaped_dm
+end;
+
+# Next we test these functions applied to Networks.
+
+g_dims = (2, 2)
+g = named_grid(g_dims)
+sites = siteinds("Qubit", g)
+vsites = siteinds("QubitVec", g)
+χ = 4
+#Random.seed!(1564)
+ψ = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
+ρ = Utils.outer(ψ, ψ)
+vρ = vectorize_density_matrix(ρ, ψ, vsites)
+
+X = op("X", sites[(1,1)])
+Y = op("Y", sites[(1,2)])
+Z = op("Z", sites[(2,2)])
+Id1 = op("Id", sites[(1,1)])
+Xt = [0 1; 1 0]
+Yt = [0 -im; im 0]
+Zt = [1 0; 0 -1]
+Idt = [1 0; 0 1]
+
+T = op("T", sites[(2, 1)])
+Tt = [1 0; 0 exp(im*π/4)]
+
+
+@testset "opdouble" begin
+    vX1 = opdouble(X, vρ)
+    vY1 = opdouble(Y, vρ)
+    vZ1 = opdouble(Z, vρ)
+    vT1 = opdouble(T, vρ)
+    @test all(vX1.tensor ≈ kron(Xt, Xt))
+    @test find_site(inds(vX1)[1], vρ) == (1,1) 
+    @test all(vY1.tensor ≈ kron(Yt, conj(Yt)))
+    @test find_site(inds(vY1)[1], vρ) == (1,2)
+    @test all(vZ1.tensor ≈ kron(Zt, Zt))
+    @test find_site(inds(vZ1)[1], vρ) == (2,2)
+    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+    @test find_site(inds(vT1)[1], vρ) == (2,1)
+end;
+
+
+
+
+@testset "apply" begin
+    # 1. Check that Unitary evolution is trace preserving.
+    Q, _ = qr(randn(ComplexF64, 4, 4))
+    qubits = [sites[(1,1)], sites[(1,2)]]
+    append!(qubits, qubits')
+    U = ITensors.ITensor(Array(Q), qubits)
+    evolved = Channels.apply(U, vρ)
+    @test VectorizationNetworks.vectorizedtrace(evolved) ≈ Utils.trace(ρ)
+end;
+
+@testset "apply_random" begin
+    unvectorized = deepcopy(ψ)
+    evolved = deepcopy(vρ)
+    for i in 1:6
+        vertex = rand(keys(unvectorized.data_graph.vertex_data))
+        qubit1 = sites[vertex]
+        qubit2 = sites[rand(Graphs.neighbors(unvectorized.data_graph.underlying_graph, vertex))]
+        qubits = [qubit1, qubit2]
+        append!(qubits, qubits')
+    
+        Q, _ = qr(randn(ComplexF64, 4, 4))
+        U = ITensor(Array(Q), qubits)
+        evolved = Channels.apply(U, evolved)
+        unvectorized = ITensorNetworks.apply(U, unvectorized)
+    end
+    
+    v2 = VectorizationNetworks.vectorize_density_matrix(outer(unvectorized, unvectorized), evolved.unvectorizednetwork, vsites)
+    norm_const = sqrt(Utils.innerprod(v2, v2) * Utils.innerprod(evolved, evolved))
+    @test Utils.innerprod(v2, evolved)/norm_const≈ 1
+end;
+
+#=
+@testset "Channel" begin
+    kraus_maps = sqrt(1/4)*[Id1, X1, Y1, Z1]
+    max_depol = depolarizing_channel(1, [sites[4]], vrho)
+    max_depol_t = (1/4)*(kron(Idt, conj(Idt)) + kron(Xt, conj(Xt)) + kron(Yt, conj(Yt))+kron(Zt, conj(Zt)))
+    @test all(max_depol_t ≈ max_depol.tensor.tensor)
+    #Would be good to test the two qubit version as well. 
+end;
+=#
+
+@testset "Channel evolution" begin
+    ρ0 = deepcopy(ρ)
+    vρ0 = vectorize_density_matrix(ρ0, ψ, vsites)
+    n_ops = 3
+    vertex = rand(keys(ψ.data_graph.vertex_data))
+    qubit1 = sites[vertex]
+    qubit2 = sites[rand(Graphs.neighbors(ψ.data_graph.underlying_graph, vertex))]
+    qubits = [qubit1, qubit2]
+    append!(qubits, qubits')
+    for ii in 1:3
+        kraus_channels = Vector{ITensor}()
+        kraus_matrices = Vector{Matrix}()
+        for _ in 1:n_ops
+            unscaled_kraus, _, _ = svd(rand(Complex{Float64}, (4 ,4)))
+            push!(kraus_matrices, ((1/sqrt(n_ops))*unscaled_kraus))
+            push!(kraus_channels, (1/sqrt(n_ops))*ITensor(unscaled_kraus, qubits))
+        end
+        channel = Channel("random_channel", kraus_channels, vρ0)
+        vρ0 = apply(channel, vρ0)
+        ρ0 = reduce(+, [swapprime(ITensorNetworks.apply(K, swapprime(ITensorNetworks.apply(conj(K), ρ0), 0, 1)), 0, 1) for K in kraus_channels])
+    end
+    vρ1 = vectorize_density_matrix(ρ0, ψ, vsites)
+    @test Utils.innerprod(vρ1, vρ0)/sqrt(Utils.innerprod(vρ1, vρ1)*Utils.innerprod(vρ0, vρ0)) ≈ 1
 end;
