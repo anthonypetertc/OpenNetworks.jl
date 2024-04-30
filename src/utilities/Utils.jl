@@ -23,6 +23,15 @@ function swapprime(ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...)::A
     return swapprime!(deepcopy(ψ), pl1, pl2; kwargs...)
 end
 
+function swapprime!(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)::VDMNetwork
+    swapprime!(ρ.network, pl1, pl2; kwargs...)
+    return ρ
+end
+
+function swapprime(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)::VDMNetwork
+    return swapprime!(deepcopy(ρ), pl1, pl2; kwargs...)
+end
+
 function innerprod(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Complex
     #= Purpose: Computes the inner product of two ITensorNetworks.
     Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
@@ -44,8 +53,6 @@ end
 
 
 function compress_underlying_graph(o::AbstractITensorNetwork, ψ::AbstractITensorNetwork)::AbstractITensorNetwork
-    # Might want to merge the bond legs so that I don't end up doubling them up.
-    # I can do this later.
     vd = copy(ψ.data_graph.vertex_data)
     for key in keys(vd)
         vd[key] = o[(key, 1)] * o[(key, 2)]
@@ -80,7 +87,10 @@ function outer(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Abstract
     Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
             ϕ (AbstractITensorNetwork) - Second ITensorNetwork.
     Returns: ITensorNetwork - Outer product of the two ITensorNetworks. =#
-    @assert ψ.data_graph.underlying_graph == ϕ.data_graph.underlying_graph "The two ITensorNetworks must have the same underlying graph."
+    if  !(ψ.data_graph.underlying_graph == ϕ.data_graph.underlying_graph) throw("The two ITensorNetworks must have the same underlying graph.") end
+    for key in keys(ψ.data_graph.vertex_data)
+        if !(Set(inds(ψ[key])) == Set(inds(ϕ[key]))) throw("The two ITensorNetworks must have the bond indices labelled in the same way.") end
+    end
     ψϕ =  ψ ⊗ prime(dag(ϕ))
     return merge_bond_legs(compress_underlying_graph(ψϕ, ψ))
 end
@@ -92,10 +102,14 @@ function trace(ρ::AbstractITensorNetwork)::Complex
     ρ = deepcopy(ρ)
     for key in keys(ρ.data_graph.vertex_data)
         s = [ind for ind in inds(ρ[key]) if hastags(ind, "Site") && plev(ind) == 0]
-        @assert length(s) == 1 "Should only be one physical leg per site."
+        if !(length(s) == 1) throw("Should only be one physical leg per site.") end
         ρ[key] *= delta(s[1], prime(s[1]))
     end
     return Array(contract(ρ).tensor)[1]
+end
+
+function trace(ρ::VDMNetwork)::Complex
+    return trace(ρ.network)
 end
 
 function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwork)
@@ -103,6 +117,7 @@ function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwo
     Inputs: ψ (AbstractITensorNetwork) - ITensorNetwork to relabel.
             f (Function) - Function to relabel the sites.
     Returns: AbstractITensorNetwork - Relabeled ITensorNetwork. =#
+    throw("Not implemented yet.")
     for key in keys(ψ.data_graph.vertex_data)
         println(siteinds(ψ)[key])
         println(ind_net[key])

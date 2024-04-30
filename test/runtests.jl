@@ -11,6 +11,9 @@ end
     include("test_vectorize_density_matrix.jl")
 end
 
+@testset "Utils tests" begin
+    include("test_utils.jl")
+end
 
 
 
