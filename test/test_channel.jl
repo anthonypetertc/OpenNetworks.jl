@@ -192,15 +192,15 @@ end;
     @test Utils.innerprod(v2, evolved)/norm_const≈ 1
 end;
 
-#=
+
 @testset "Channel" begin
     kraus_maps = sqrt(1/4)*[Id1, X1, Y1, Z1]
-    max_depol = depolarizing_channel(1, [sites[4]], vrho)
+    max_depol = depolarizing_channel(1, [sites[(2,2)]], vρ)
     max_depol_t = (1/4)*(kron(Idt, conj(Idt)) + kron(Xt, conj(Xt)) + kron(Yt, conj(Yt))+kron(Zt, conj(Zt)))
     @test all(max_depol_t ≈ max_depol.tensor.tensor)
     #Would be good to test the two qubit version as well. 
 end;
-=#
+
 
 @testset "Channel evolution" begin
     ρ0 = deepcopy(ρ)
