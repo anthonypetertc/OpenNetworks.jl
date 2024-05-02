@@ -96,7 +96,7 @@ end
 
 
 
-function vectorizedtrace(ρ::VDMNetwork)::Complex
+function vectorizedtrace(ρ::VDMNetwork, kwargs...)::Complex
     idn = vidnetwork(ρ.unvectorizednetwork, siteinds(ρ.network))
     return innerprod(ρ, idn) 
 end

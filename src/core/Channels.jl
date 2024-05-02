@@ -232,7 +232,7 @@ function depolarizing_channel(p::Real, sites::Vector, rho:: MPS)::Channel
             rho (MPS) - Density matrix that the channel acts on.
     Returns: Channel - Depolarizing channel with the given parameters. =#
 
-    @assert 0 <= p <= 1 "parameter p must be between 0 and 1."
+    if !(0 <= p <= 1) throw("parameter p must be between 0 and 1.") end
     for site in sites
         @assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
         @assert hastags(site, "Qubit") "Depolarizing channel only implemented for Qubits."
@@ -258,6 +258,42 @@ function depolarizing_channel(p::Real, sites::Vector, rho:: MPS)::Channel
         throw("Depolarizing channel for more than two qubit gates has not been implemented.")
     end
 end
+
+
+function depolarizing_channel(p::Real, sites::Vector, rho:: VDMNetwork)::Channel
+    #= Purpose: Creates a depolarizing channel for a given density matrix.
+    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
+            sites (Vector) - Vector of sites that the channel acts on.
+            rho (MPS) - Density matrix that the channel acts on.
+    Returns: Channel - Depolarizing channel with the given parameters. =#
+
+    if !(0 <= p <= 1) throw("parameter p must be between 0 and 1.") end
+    for site in sites
+        #@assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
+        if !(hastags(site, "Qubit")) throw("Depolarizing channel only implemented for Qubits.") end
+    end
+
+    k = length(sites)
+    if k == 1
+        const0 = sqrt(1 - 3*p/4)
+        constσ = sqrt(p/4)
+        kraus_maps = [constσ*op("σx", sites[1]), constσ*op("σy", sites[1]), constσ*op("σz", sites[1]), const0*op("Id", sites[1])]
+        return Channel("depolarizing", kraus_maps, rho)
+
+    elseif k==2
+        const0 = sqrt(1 - 15*p/16)
+        constσ = sqrt(p/16)
+        pauli1 = [op("σx", sites[1]), op("σy", sites[1]), op("σz", sites[1]), op("Id", sites[1])]
+        pauli2 = [op("σx", sites[2]), op("σy", sites[2]), op("σz", sites[2]), op("Id", sites[2])]
+        kraus_maps = [constσ*x*y for x in pauli1 for y in pauli2]
+        replace!(kraus_maps, Pair(constσ*pauli1[end]*pauli2[end], const0*pauli1[end]*pauli2[end]))
+        return Channel("depolarizing", kraus_maps, rho)
+    
+    else
+        throw("Depolarizing channel for more than two qubit gates has not been implemented.")
+    end
+end
+
 
 function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     #= Purpose: Applies a channel to a density matrix.
