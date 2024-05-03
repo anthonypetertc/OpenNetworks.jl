@@ -168,7 +168,7 @@ end;
     append!(qubits, qubits')
     U = ITensors.ITensor(Array(Q), qubits)
     evolved = Channels.apply(U, vρ)
-    @test VectorizationNetworks.vectorizedtrace(evolved) ≈ Utils.trace(ρ)
+    @test VectorizationNetworks.vectorizedtrace(evolved; alg="exact") ≈ Utils.trace(ρ)
 end;
 
 @testset "apply_random" begin

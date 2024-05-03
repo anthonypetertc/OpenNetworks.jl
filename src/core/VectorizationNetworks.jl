@@ -81,10 +81,14 @@ function idnetwork(ψ::ITensorNetwork)::ITensorNetwork
     # Purpose: Creates an ITensorNetwork with identity tensors at each site.
     # Inputs: inds (ITensorNetworks.IndsNetwork) - Site indices.
     # Returns: ITensorNetwork - ITensorNetwork with identity tensors at each site.
-    data_graph = deepcopy(ψ.data_graph)
+    data_graph = ITensorNetworks.ITensorNetwork(v->"0", siteinds(ψ)).data_graph
     sitekeys = keys(siteinds(ψ).data_graph.vertex_data)
     for key in sitekeys
-        data_graph.vertex_data[key] = ITensor(delta(siteinds(ψ)[key][1],siteinds(ψ)[key][1]'))
+        indices = [ind for ind in inds(data_graph.vertex_data[key]) if !(ind==siteinds(ψ)[key][1])]
+        d = ITensors.dim(siteinds(ψ)[key][1])
+        dims = Tuple(append!([d, d], [1 for ind in indices]))
+        id_array = Array(delta(siteinds(ψ)[key][1], siteinds(ψ)[key][1]').tensor)
+        data_graph.vertex_data[key] = ITensor(reshape(id_array, dims), siteinds(ψ)[key][1], siteinds(ψ)[key][1]', indices...)
     end
     return ITensorNetwork(data_graph.vertex_data)
 end
@@ -96,9 +100,9 @@ end
 
 
 
-function vectorizedtrace(ρ::VDMNetwork, kwargs...)::Complex
+function vectorizedtrace(ρ::VDMNetwork; kwargs...)::Complex
     idn = vidnetwork(ρ.unvectorizednetwork, siteinds(ρ.network))
-    return innerprod(ρ, idn) 
+    return ITensorNetworks.inner(ρ.network, idn.network; kwargs...)
 end
 
 
@@ -106,7 +110,7 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     idn = idnetwork(ρ.unvectorizednetwork)
     new_network = ITensorNetworks.apply(op, idn; kwargs...)
     new_op = vectorize_density_matrix(new_network, ρ.unvectorizednetwork, siteinds(ρ))
-    return innerprod(ρ, new_op)
+    return ITensorNetworks.inner(ρ.network, new_op.network; kwargs...)
 end 
 
 #=
