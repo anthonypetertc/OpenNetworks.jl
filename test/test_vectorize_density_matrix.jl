@@ -55,13 +55,15 @@ end;
      * Array(contract(ρ2 ⊗ swapprime(prime(dag(ρ2)), 0, 2)).tensor)[1])
 end;
 
+
 @testset "trace" begin
-    @test VectorizationNetworks.vectorizedtrace(vρ) ≈ Utils.trace(ρ)
+    @test VectorizationNetworks.vectorizedtrace(vρ; alg="exact") ≈ Utils.trace(ρ)
 end;
+
 
 @testset "expectation" begin
     o = op("Z", sites[(1,1)])
-    @test VectorizationNetworks.vexpect(vρ, o) ≈ Utils.trace(ITensorNetworks.apply(o, ρ))
+    @test VectorizationNetworks.vexpect(vρ, o; alg="exact") ≈ Utils.trace(ITensorNetworks.apply(o, ρ))
 end;
 
 
