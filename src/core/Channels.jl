@@ -340,9 +340,6 @@ function compose(post:: Channel, pre::Channel)::Channel
     tens2 = prime(post.tensor)
     new_tensor = tens2 * pre.tensor
     swapprime!(new_tensor, 1, 2)
-    @show new_tensor
-    @show post.name * "∘" * pre.name
     return Channel(post.name * "∘" * pre.name , new_tensor)
 end
-
 end;

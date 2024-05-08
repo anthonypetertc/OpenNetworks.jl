@@ -15,5 +15,6 @@ end
     include("test_utils.jl")
 end
 
-
-
+@testset "Circuit Compilation" begin
+    include("test_circuit_compilation.jl")
+end

@@ -47,15 +47,17 @@ function add_noise_to_circuit(qc::Vector{}, noise_model::NoiseModel, n_qubits:: 
 end
 
 
-function make_gate(name:: String, qubits:: Vector{}, params:: Vector, sites::ITensorNetworks.IndsNetwork):: ITensors.ITensor
-    if params != [] throw("Not implemented yet.") end
+function make_gate(name:: String, qubits:: Vector{}, params:: Dict, sites::ITensorNetworks.IndsNetwork):: ITensors.ITensor
+    #if params != [] throw("Not implemented yet.") end
     ss = [sites[(qubit,)] for qubit in qubits] 
     if length(qubits) == 1
-        tensor = op(name, ss[1][1]) 
+        tensor = op(name, ss[1][1]; params...) 
     elseif length(qubits) == 2
-        tensor = op(name, ss[1][1], ss[2][1])
+        tensor = op(name, ss[1][1], ss[2][1]; params...)
+    elseif length(qubits) == 3
+        tensor = op(name, ss[1][1], ss[2][1], ss[3][1]; params...)
     else
-        throw("Not implemented.")
+        throw("Only 4 qubit gates or less.")
     end
     return tensor
 end

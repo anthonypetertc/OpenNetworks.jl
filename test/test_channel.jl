@@ -226,3 +226,16 @@ end;
     vρ1 = vectorize_density_matrix(ρ0, ψ, vsites)
     @test Utils.innerprod(vρ1, vρ0)/sqrt(Utils.innerprod(vρ1, vρ1)*Utils.innerprod(vρ0, vρ0)) ≈ 1
 end;
+
+@testset "Compose" begin
+    tensor = op("X", sites[(1,1)])
+    gate_channel = Channel("X", [tensor], vρ)
+    new_chan = Channels.compose(gate_channel, gate_channel)
+    @test new_chan.tensor.tensor ≈ kron(Idt, Idt)
+
+    y_channel = Channel("Y", [op("Y", sites[(1,1)])], vρ)
+    XY_channel = Channels.compose(gate_channel, y_channel)
+    @test XY_channel.tensor.tensor ≈ kron(Zt, Zt)
+
+    #TO DO: Might also be good to check this on a non-unitary channel, e.g. depolarizing.
+end;
