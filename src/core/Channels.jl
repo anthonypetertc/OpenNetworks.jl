@@ -209,6 +209,10 @@ struct Channel
     name::String
     tensor::ITensor
 
+    function Channel(name::String, tensor::ITensor)
+        return new(name, tensor)
+    end
+
     function Channel(name::String, kraus_maps::Vector{ITensor}, rho::MPS)
             @assert _krauscheck(kraus_maps)==true "Kraus operators invalid: ΣKK† ≆ I"
             _krausindscheck(kraus_maps)
@@ -327,4 +331,18 @@ function apply(o::ITensors.ITensor, ρ::VDMNetwork)::VDMNetwork
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network), ρ.unvectorizednetwork)
 end
+
+function compose(post:: Channel, pre::Channel)::Channel
+    #= Purpose: Composes two channels.
+    Inputs: o1 (Channel) - First channel.
+            o2 (Channel) - Second channel.
+    Returns: Channel - Composition of the two channels. =#
+    tens2 = prime(post.tensor)
+    new_tensor = tens2 * pre.tensor
+    swapprime!(new_tensor, 1, 2)
+    @show new_tensor
+    @show post.name * "∘" * pre.name
+    return Channel(post.name * "∘" * pre.name , new_tensor)
+end
+
 end;
