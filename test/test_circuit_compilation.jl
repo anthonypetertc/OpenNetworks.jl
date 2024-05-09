@@ -1,13 +1,13 @@
 using Test
 using OpenSystemsTools
 using ITensors
-using OpenNetworks: VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits
+using OpenNetworks: VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels
 using NamedGraphs: named_grid
 using Random
 using LinearAlgebra
 using Graphs
 using ITensorNetworks
-
+using JSON
 
 N = 12
 G = GraphUtils.named_ring_graph(N)
@@ -44,4 +44,21 @@ vsites = ITensorNetworks.siteinds("QubitVec", G)
     end
 end;
 
+bell_pair_circuit = JSON.parsefile("example_circuits/bell_pair.json")
+g = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
+sites = ITensorNetworks.siteinds("Qubit", g)
+vsites = ITensorNetworks.siteinds("QubitVec", g)
+ψ = ITensorNetwork(v -> "0", sites);
+ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
+p = 0.1
+depol_channel = Channels.depolarizing_channel(p, [sites[(0,)][1], sites[(1,)][1]], ρ);
+noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [vsites[(0,)][1], vsites[(1,)][1]], Set(["CX"]), Set([vsites[(0,)][1], vsites[(1,)][1]]));
+noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), vsites);
 
+noisy_circuit = NoisyCircuits.add_noise_to_circuit(bell_pair_circuit, noise_model, 2)
+@show length(noisy_circuit)
+
+#noise_instruction = NoiseModels.NoiseInstruction([1, 2], ["CX"], Channels.depolarizing_channel(p, 2))
+#sites = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
+#noise_model = NoiseModels.NoiseModel([noise_instruction], sites)
+#@show noise_model

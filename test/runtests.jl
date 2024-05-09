@@ -15,6 +15,9 @@ end
     include("test_utils.jl")
 end
 
+@testset "GraphUtils tests" begin
+    include("test_graph_utils.jl")
+end
 @testset "Circuit Compilation" begin
     include("test_circuit_compilation.jl")
 end
