@@ -41,24 +41,25 @@ end
 
 function prepare_noise_for_gate(
     noise_instruction:: NoiseInstruction,
-    Qubits:: Vector{ITensors.Index}
+    Qubits:: Vector{<:ITensors.Index}
 ):: Channels.Channel
-    prepared_channel = Channels.copy(noise_instruction.channel)
+    new_tensor = deepcopy(noise_instruction.channel.tensor)
     for (i, qubit) in enumerate(Qubits)
-        if qubit not in noise_instruction.qubits_noise_applies_to
+        if !(qubit in noise_instruction.qubits_noise_applies_to)
             throw("Qubit not in qubits_noise_applies_to.")
         else
-            noise_index = NoiseInstruction.index_ordering_of_channel[i]
-            prepared_channel.tensor *= ITensors.delta(noise_index, qubit)
-            prepared_channel.tensor *= ITensors.delta(noise_index', qubit')
+            noise_index = noise_instruction.index_ordering_of_channel[i]
+            new_tensor *= ITensors.delta(noise_index, qubit)
+            new_tensor *= ITensors.delta(noise_index', qubit')
         end
     end
-    return prepared_channel
+    return Channels.Channel(noise_instruction.channel.name, new_tensor)
     end
 
 struct NoiseModel
     noise_instructions:: Set{NoiseInstruction}
     siteinds:: ITensorNetworks.IndsNetwork
+    vectorizedsiteinds:: ITensorNetworks.IndsNetwork
 end
 
 

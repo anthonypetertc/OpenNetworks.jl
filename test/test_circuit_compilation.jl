@@ -44,21 +44,26 @@ vsites = ITensorNetworks.siteinds("QubitVec", G)
     end
 end;
 
-bell_pair_circuit = JSON.parsefile("example_circuits/bell_pair.json")
-g = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
-sites = ITensorNetworks.siteinds("Qubit", g)
-vsites = ITensorNetworks.siteinds("QubitVec", g)
-ψ = ITensorNetwork(v -> "0", sites);
-ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
-p = 0.1
-depol_channel = Channels.depolarizing_channel(p, [sites[(0,)][1], sites[(1,)][1]], ρ);
-noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [vsites[(0,)][1], vsites[(1,)][1]], Set(["CX"]), Set([vsites[(0,)][1], vsites[(1,)][1]]));
-noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), vsites);
 
-noisy_circuit = NoisyCircuits.add_noise_to_circuit(bell_pair_circuit, noise_model, 2)
-@show length(noisy_circuit)
 
-#noise_instruction = NoiseModels.NoiseInstruction([1, 2], ["CX"], Channels.depolarizing_channel(p, 2))
-#sites = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
-#noise_model = NoiseModels.NoiseModel([noise_instruction], sites)
-#@show noise_model
+@testset "Load circuit and add noise" begin
+    bell_pair_circuit = JSON.parsefile("example_circuits/bell_pair.json")
+    g = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
+    sites = ITensorNetworks.siteinds("Qubit", g)
+    vsites = ITensorNetworks.siteinds("QubitVec", g)
+    ψ = ITensorNetwork(v -> "0", sites);
+    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
+    p = 0.1
+    depol_channel = Channels.depolarizing_channel(p, [sites[(0,)][1], sites[(1,)][1]], ρ);
+    noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [vsites[(0,)][1], vsites[(1,)][1]], Set(["CX"]), Set([vsites[(0,)][1], vsites[(1,)][1]]));
+    noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites);
+
+    noisy_circuit = NoisyCircuits.add_noise_to_circuit(bell_pair_circuit, noise_model, 2)
+    for channel in noisy_circuit
+        ρ = Channels.apply(channel, ρ)
+    end
+
+    expected_dm = Array([(1-p)/2 + p/4 0 0 (1-p)/2 ; 0 p/4 0 0 ; 0 0 p/4 0 ; (1-p)/2 0 0 (1-p)/2 + p/4])
+    reshaped_dm = reshape(permutedims(reshape(expected_dm, (2,2,2,2)), [1, 3, 2, 4]), (4,4))
+    @test Array(ITensorNetworks.contract(ρ.network).tensor) ≈ reshaped_dm
+end;
