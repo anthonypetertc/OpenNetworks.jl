@@ -14,7 +14,7 @@ G = GraphUtils.named_ring_graph(N)
 
 sites = ITensorNetworks.siteinds("Qubit", G)
 vsites = ITensorNetworks.siteinds("QubitVec", G)
-#I should re-write some of my functions so that they don't require a reference state, only the site inds.
+#TODO: I should re-write some of my functions so that they don't require a reference state, only the site inds.
 ψ = ITensorNetwork(v -> "0", sites);
 ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
 

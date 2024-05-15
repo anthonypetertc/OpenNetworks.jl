@@ -1,5 +1,5 @@
 module NoisyCircuits
-
+export NoisyCircuit
 
 using ITensors
 using ITensorNetworks
@@ -117,7 +117,7 @@ function squeeze_single_qubit_gates(channel_list:: Vector{Channel}, index_list::
     return new_channel_list, new_index_list
 end
 
-#Would also be good to write another function that adds noise to a circuit represented as a list of channels or ITensors instead as 
+#TODO: Would also be good to write another function that adds noise to a circuit represented as a list of channels or ITensors instead as 
 #the list of dicts that I am using at the moment. 
 
 function add_noise_to_circuit(qc::Vector{Dict{String, Any}}, noise_model::NoiseModels.NoiseModel)::Vector{Channel}

@@ -1,5 +1,5 @@
 module NoiseModels
-
+export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 
 using ITensors
 using ITensorNetworks
@@ -61,9 +61,5 @@ struct NoiseModel
     siteinds:: ITensorNetworks.IndsNetwork
     vectorizedsiteinds:: ITensorNetworks.IndsNetwork
 end
-
-
-
-
 
 end
