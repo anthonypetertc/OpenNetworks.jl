@@ -9,7 +9,7 @@ using Graphs
 using ITensorNetworks
 using JSON
 
-circ = JSON.parsefile("example_circuits/circ.json")
+circ = [Utils.typenarrow!(elm) for elm in JSON.parsefile("example_circuits/circ.json")]
 G = GraphUtils.extract_adjacency_graph(circ, 12)
 G2 = GraphUtils.named_ring_graph(12)
 

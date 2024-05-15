@@ -46,7 +46,7 @@ function prepare_noise_for_gate(
     new_tensor = deepcopy(noise_instruction.channel.tensor)
     for (i, qubit) in enumerate(Qubits)
         if !(qubit in noise_instruction.qubits_noise_applies_to)
-            throw("Qubit not in qubits_noise_applies_to.")
+            throw("Noise instruction does not apply to this qubit.")
         else
             noise_index = noise_instruction.index_ordering_of_channel[i]
             new_tensor *= ITensors.delta(noise_index, qubit)

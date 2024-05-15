@@ -321,8 +321,6 @@ end
 
 
 
-
-
 function apply(o::ITensors.ITensor, ρ::VDMNetwork)::VDMNetwork
     #= Purpose: Applies an operator to a density matrix.
     Inputs: o (ITensor) - Operator to apply.
@@ -337,9 +335,36 @@ function compose(post:: Channel, pre::Channel)::Channel
     Inputs: o1 (Channel) - First channel.
             o2 (Channel) - Second channel.
     Returns: Channel - Composition of the two channels. =#
-    tens2 = prime(post.tensor)
-    new_tensor = tens2 * pre.tensor
-    swapprime!(new_tensor, 1, 2)
-    return Channel(post.name * "∘" * pre.name , new_tensor)
+
+    matching = [ind for ind in inds(post.tensor) if ind in inds(pre.tensor) && plev(ind)==0]
+    tens_post = deepcopy(post.tensor)
+    tens_pre = deepcopy(pre.tensor)
+    for ind in matching
+        tens_post *= ITensors.delta(ind, ind'')
+        tens_pre *= ITensors.delta(ind', ind'')
+    end
+    new_tensor = tens_post * tens_pre
+    return Channel(post.name * "∘" * pre.name, new_tensor)
+    #=
+    if lpost == lpre
+        tens2 = prime(post.tensor)
+        new_tensor = tens2 * pre.tensor
+        swapprime!(new_tensor, 1, 2)
+        return Channel(post.name * "∘" * pre.name , new_tensor)
+    elseif lpost > lpre
+        tens2 = prime(post.tensor)
+        new_tensor = tens2 * pre.tensor
+        setprime!(new_tensor, 0; plev=1)
+        swapprime!(new_tensor, 1, 2)
+        return Channel(post.name * "∘" * pre.name , new_tensor)
+    elseif lpost < lpre
+        tens2 = prime(post.tensor)
+        new_tensor = tens2 * pre.tensor
+        setprime!(new_tensor, 1; plev=2)
+        return Channel(post.name * "∘" * pre.name , new_tensor)
+    else
+        throw("Compose not implemented for Channels sizes: lpost:$lpost lpre: $lpre")
+    end
+    =#
 end
 end;

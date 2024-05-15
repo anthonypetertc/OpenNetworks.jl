@@ -18,6 +18,25 @@ vsites = ITensorNetworks.siteinds("QubitVec", G)
 ψ = ITensorNetwork(v -> "0", sites);
 ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
 
+
+
+@testset "Prepare Parameters" begin
+    @test NoisyCircuits.prepare_params([π/2]) == Dict(:θ => π/2)
+    @test NoisyCircuits.prepare_params([π/2, π/4]) == Dict(:θ => π/2, :ϕ => π/4)
+    @test NoisyCircuits.prepare_params([π/2, π/4, π/8]) == Dict(:θ => π/2, :ϕ => π/4, :λ => π/8)
+    @test_throws "Only 3 parameters or less." NoisyCircuits.prepare_params([π/2, π/4, π/8, π/16])
+end;
+
+@testset "Prepare noise for gate" begin
+    p = 0.1
+    depol_channel = Channels.depolarizing_channel(p, [sites[(0,)][1], sites[(1,)][1]], ρ);
+    noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, 
+    [vsites[(0,)][1], vsites[(1,)][1]], Set(["CX"]), Set([vsites[(i,)][1] for i in 0:7]));
+    noise_tensor = NoiseModels.prepare_noise_for_gate(noise_instruction, [vsites[(4,)][1], vsites[(5,)][1]])
+    @test Set(inds(noise_tensor.tensor)) == Set{ITensors.Index{Int64}}([vsites[(4,)][1]', vsites[(5,)][1]', vsites[(4,)][1], vsites[(5,)][1]])
+    @test_throws "Noise instruction does not apply to this qubit." NoiseModels.prepare_noise_for_gate(noise_instruction, [vsites[(0,)][1], vsites[(11,)][1]])
+end;
+
 @testset "Make Gate" begin
     @testset "Single Qubit Gate" begin
         tensor = NoisyCircuits.make_gate("X", [1], Dict(), sites)
@@ -44,22 +63,22 @@ vsites = ITensorNetworks.siteinds("QubitVec", G)
     end
 end;
 
+bell_pair_circuit = [Utils.typenarrow!(elm) for elm in JSON.parsefile("example_circuits/bell_pair.json")]
+bell_g = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
+bell_sites = ITensorNetworks.siteinds("Qubit", bell_g)
+bell_vsites = ITensorNetworks.siteinds("QubitVec", bell_g)
+bell_ψ = ITensorNetwork(v -> "0", bell_sites);
+bell_ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(bell_ψ, bell_ψ),bell_ψ, bell_vsites)
 
-
-@testset "Load circuit and add noise" begin
-    bell_pair_circuit = JSON.parsefile("example_circuits/bell_pair.json")
-    g = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
-    sites = ITensorNetworks.siteinds("Qubit", g)
-    vsites = ITensorNetworks.siteinds("QubitVec", g)
-    ψ = ITensorNetwork(v -> "0", sites);
-    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
+@testset "Add noise to Bell pair." begin
+    ρ = bell_ρ
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(p, [sites[(0,)][1], sites[(1,)][1]], ρ);
-    noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [vsites[(0,)][1], vsites[(1,)][1]], Set(["CX"]), Set([vsites[(0,)][1], vsites[(1,)][1]]));
-    noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites);
+    depol_channel = Channels.depolarizing_channel(p, [bell_sites[(0,)][1], bell_sites[(1,)][1]], bell_ρ);
+    noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [bell_vsites[(0,)][1], bell_vsites[(1,)][1]], Set(["CX"]), Set([bell_vsites[(0,)][1], bell_vsites[(1,)][1]]));
+    noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), bell_sites, bell_vsites);
+    noisy_circuit = NoisyCircuits.add_noise_to_circuit(bell_pair_circuit, noise_model)
 
-    noisy_circuit = NoisyCircuits.add_noise_to_circuit(bell_pair_circuit, noise_model, 2)
-    for channel in noisy_circuit
+    for (i, channel) in enumerate(noisy_circuit)
         ρ = Channels.apply(channel, ρ)
     end
 
@@ -67,3 +86,63 @@ end;
     reshaped_dm = reshape(permutedims(reshape(expected_dm, (2,2,2,2)), [1, 3, 2, 4]), (4,4))
     @test Array(ITensorNetworks.contract(ρ.network).tensor) ≈ reshaped_dm
 end;
+
+ring_circuit = [Utils.typenarrow!(elm) for elm in JSON.parsefile("example_circuits/circ.json")]
+ring_g = GraphUtils.extract_adjacency_graph(circ, 12)
+ring_sites = ITensorNetworks.siteinds("Qubit", ring_g)
+ring_vsites = ITensorNetworks.siteinds("QubitVec", ring_g)
+ring_ψ = ITensorNetwork(v -> "0", ring_sites);
+ring_ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ring_ψ, ring_ψ), ring_ψ, ring_vsites)
+
+@testset "Tests on ring circuit" begin
+    sites = ring_sites
+    vsites = ring_vsites
+    ψ = ring_ψ
+    ρ = ring_ρ
+    circ = ring_circuit
+
+    p = 0.1
+    depol_channel = Channels.depolarizing_channel(p, [sites[(0,)][1], sites[(1,)][1]], ρ);
+    noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [vsites[(0,)][1], vsites[(1,)][1]], Set(["CX"]), Set([vsites[(i,)][1] for i in 0:11]));
+    noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites);
+    noisy_circuit = NoisyCircuits.add_noise_to_circuit(circ, noise_model)
+    compressed_noisy_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
+    compiled_noisy_circuit = NoisyCircuits.compile_into_moments(compressed_noisy_circuit, vsites)
+    circuit_object = NoisyCircuits.NoisyCircuit(circ, noise_model)
+
+    @testset "Noise applied to correct qubits." begin 
+        for gate in noisy_circuit
+            if length(inds(gate.tensor)) == 4
+                @test gate.name == "depolarizing∘CX"
+            end
+        end
+    end
+
+
+    @testset "Compression of noisy circuit." begin
+        @test length(compressed_noisy_circuit) == 12
+        for gate in compressed_noisy_circuit
+            @test length(inds(gate.tensor)) == 4
+        end
+    end
+
+    @testset "Compilation into moments" begin
+        @test length(compiled_noisy_circuit) == 12
+        for (i, moment) in enumerate(compiled_noisy_circuit)
+            @test length(moment) == 1
+            @test moment[1].tensor == compressed_noisy_circuit[i].tensor
+            @test moment[1].name == compressed_noisy_circuit[i].name
+        end
+    end
+
+    @testset "Noisy Circuit object" begin
+        @test circuit_object.noise_model == noise_model
+        for (i, moment) in enumerate(circuit_object.moments_list)
+            for (j, gate) in enumerate(moment)
+                @test gate.tensor == compiled_noisy_circuit[i][j].tensor
+                @test gate.name == compiled_noisy_circuit[i][j].name
+            end
+        end
+    end
+end;
+
