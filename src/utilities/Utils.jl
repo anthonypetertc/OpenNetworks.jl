@@ -119,12 +119,20 @@ function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwo
     Returns: AbstractITensorNetwork - Relabeled ITensorNetwork. =#
     throw("Not implemented yet.")
     for key in keys(ψ.data_graph.vertex_data)
-        println(siteinds(ψ)[key])
-        println(ind_net[key])
         dd = ITensors.delta(siteinds(ψ)[key][1], ind_net[key][1])
         ψ[key] *= dd
-        println(ψ[key])
     end
+end
+
+function typenarrow!(d::Dict{<:Any, <:Any})
+    for key in keys(d)
+        if typeof(d[key]) == Dict
+            typenarrow!(d[key])
+        elseif typeof(d[key]) == Vector{Any}
+            d[key] = [v for v in d[key]]
+        end
+    end
+    return d
 end
 
 end;

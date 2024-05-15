@@ -138,6 +138,7 @@ Xt = [0 1; 1 0]
 Yt = [0 -im; im 0]
 Zt = [1 0; 0 -1]
 Idt = [1 0; 0 1]
+CXt = [1 0 0 0; 0 1 0 0; 0 0 0 1; 0 0 1 0]
 
 T = op("T", sites[(2, 1)])
 Tt = [1 0; 0 exp(im*π/4)]
@@ -226,3 +227,38 @@ end;
     vρ1 = vectorize_density_matrix(ρ0, ψ, vsites)
     @test Utils.innerprod(vρ1, vρ0)/sqrt(Utils.innerprod(vρ1, vρ1)*Utils.innerprod(vρ0, vρ0)) ≈ 1
 end;
+
+@testset "Compose" begin
+    tensor = op("X", sites[(1,1)])
+    gate_channel = Channel("X", [tensor], vρ)
+    new_chan = Channels.compose(gate_channel, gate_channel)
+    @test new_chan.tensor.tensor ≈ kron(Idt, Idt)
+
+    y_channel = Channel("Y", [op("Y", sites[(1,1)])], vρ)
+    XY_channel = Channels.compose(gate_channel, y_channel)
+    @test XY_channel.tensor.tensor ≈ kron(Zt, Zt)
+end;
+
+
+index_list = Vector{ITensors.Index}()
+append!(index_list, sites[(1, 1)])
+append!(index_list, sites[(1, 2)])
+CX_channel = Channel("CX", [op("CX", index_list)], vρ)
+X_channel = Channel("X", [op("X", sites[(1,1)])], vρ)
+composed_channel = Channels.compose(CX_channel, X_channel)
+ψ00 = ITensorNetwork(v -> "0", sites)
+ψ01 = ITensorNetworks.apply(op("X", sites[(1,2)]), ψ00)
+ψ10 = ITensorNetworks.apply(op("X", sites[(1,1)]), ψ00)
+ψ11 = ITensorNetworks.apply(op("X", sites[(1,1)]), ψ01)
+ρ00 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ00, ψ00), ψ00, vsites)
+ρ01 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ01, ψ01), ψ01, vsites)
+ρ10 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ10, ψ10), ψ10, vsites)
+ρ11 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ11, ψ11), ψ11, vsites)
+
+@testset "Compose two qubit" begin
+    @test Utils.innerprod(Channels.apply(composed_channel, ρ00), ρ11) ≈ 1
+    @test Utils.innerprod(Channels.apply(composed_channel, ρ01), ρ10) ≈ 1
+    @test Utils.innerprod(Channels.apply(composed_channel, ρ10), ρ00) ≈ 1
+    @test Utils.innerprod(Channels.apply(composed_channel, ρ11), ρ01) ≈ 1
+end;
+
