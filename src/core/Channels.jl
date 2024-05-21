@@ -1,5 +1,5 @@
 module Channels
-export Channel, depolarizing_channel, apply, opdouble
+export Channel, depolarizing_channel, apply, opdouble, find_site
 
 using ITensors
 import OpenSystemsTools: Vectorization
@@ -52,9 +52,7 @@ function tagstring(T::ITensors.TagSet)::String
 end
 
 function find_site(ind::ITensors.Index)
-    #= Purpose: Given a site index for an ITensor, this function will return the site it corresponds to. 
-    Function will give an error if no site is associated with the index (e.g. bond indices). Note that the
-    tags on the index must include "Site" and "n=##" where ## is an integer. =#
+    #= Purpose: Given a site index for an ITensor, this function will return the site it corresponds to.=#
 
     @assert hastags(ind, "Site") "Can't find site: Index has no site." 
     ts = tagstring(tags(ind))
@@ -69,9 +67,7 @@ function find_site(ind::ITensors.Index)
 end
 
 function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
-    #= Purpose: Finds the site of an index.
-    Inputs: ind (ITensorIndex) - Index of an ITensor.
-    Returns: Int - Site of the index. =#
+    #= Purpose: Finds the site of an index.=#
     for key in keys(siteinds(ψ).data_graph.vertex_data)
         if ind in siteinds(ψ)[key]
             return key
@@ -80,9 +76,7 @@ function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
 end
 
 function find_site(ind::ITensors.Index, ρ::VDMNetwork)::Tuple
-    #= Purpose: Finds the site of an index.
-    Inputs: ind (ITensorIndex) - Index of an ITensor.
-    Returns: Int - Site of the index. =#
+    #= Purpose: Finds the site of an index.=#
     return find_site(ind, ρ.network)
 end
 
@@ -160,7 +154,6 @@ function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool
     #= Purpose: Checks if the Kraus operators are valid. Sum of Kraus operators multiplied by conjugates should be close to identity.
     Inputs: kraus_maps_true (Vector{ITensor}) - Vector of Kraus operators.
     Returns: Bool - True if ΣKK† ≈ I, False otherwise. =#
-
     kraus_maps = [deepcopy(kr) for kr in kraus_maps_true]
     sites = [ind for ind in ITensors.inds(kraus_maps[1]) if plev(ind)==0]
     kr_sum = reduce(*, [op("0tens", site) for site in sites]) 
@@ -179,17 +172,7 @@ end
 function _krausindscheck(kraus_maps::Vector)
     #= Purpose: Checks if the Kraus operators are acting on the same indices.
     Inputs: kraus_maps (Vector) - Vector of Kraus operators.
-    Returns: Nothing =#function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
-    #= Purpose: Finds the site of an index.
-    Inputs: ind (ITensorIndex) - Index of an ITensor.
-    Returns: Int - Site of the index. =#
-    for key in keys(siteinds(ψ).data_graph.vertex_data)
-        if ind in siteinds(ψ)[key]
-            return key
-        end
-    end
-end
-
+    Returns: Nothing =#
 
     kraus1 = kraus_maps[1]
     for kraus in kraus_maps[2:end]
@@ -200,12 +183,6 @@ end
 
 
 struct Channel
-    #= Purpose: A struct that represents a quantum channel.
-    Fields: name (String) - Name of the channel.
-            tensor (ITensor) - ITensor representation of the channel.
-    Constructor: Channel(name::String, kraus_maps::Vector{ITensor}, rho::MPS).
-    =#
-
     name::String
     tensor::ITensor
 
@@ -271,7 +248,7 @@ function depolarizing_channel(p::Real, sites::Vector, rho:: VDMNetwork)::Channel
             rho (MPS) - Density matrix that the channel acts on.
     Returns: Channel - Depolarizing channel with the given parameters. =#
 
-    if !(0 <= p <= 1) throw("parameter p must be between 0 and 1.") end
+    if !(0 < p <= 1) throw("parameter p must be between 0 and 1.") end
     for site in sites
         #@assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
         if !(hastags(site, "Qubit")) throw("Depolarizing channel only implemented for Qubits.") end
@@ -300,21 +277,11 @@ end
 
 
 function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
-    #= Purpose: Applies a channel to a density matrix.
-    Inputs: channel (Channel) - Quantum channel to be applied.
-            ρ (MPS) - vectorized Density matrix to be acted on.
-    Returns: MPS - vectorized Density matrix after the channel has been applied. =#
-
     channel_tensor = channel.tensor
     return ITensors.apply(channel_tensor, ρ; kwargs...)
 end
 
 function apply(channel::Channel, ρ::VDMNetwork; kwargs...)::VDMNetwork
-    #= Purpose: Applies a channel to an ITensorNetwork.
-    Inputs: channel (Channel) - Quantum channel to be applied.
-            ρ (AbstractITensorNetwork) - ITensorNetwork to be acted on.
-    Returns: AbstractITensorNetwork - ITensorNetwork after the channel has been applied. =#
-
     channel_tensor = channel.tensor
     return VDMNetwork(ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizednetwork)
 end
@@ -322,20 +289,11 @@ end
 
 
 function apply(o::ITensors.ITensor, ρ::VDMNetwork)::VDMNetwork
-    #= Purpose: Applies an operator to a density matrix.
-    Inputs: o (ITensor) - Operator to apply.
-            ρ (ITensorNetwork) - Density matrix.
-    Returns: ITensorNetwork - New density matrix. =#
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network), ρ.unvectorizednetwork)
 end
 
 function compose(post:: Channel, pre::Channel)::Channel
-    #= Purpose: Composes two channels.
-    Inputs: o1 (Channel) - First channel.
-            o2 (Channel) - Second channel.
-    Returns: Channel - Composition of the two channels. =#
-
     matching = [ind for ind in inds(post.tensor) if ind in inds(pre.tensor) && plev(ind)==0]
     tens_post = deepcopy(post.tensor)
     tens_pre = deepcopy(pre.tensor)
