@@ -108,7 +108,7 @@ end
 
 function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     idn = idnetwork(ρ.unvectorizednetwork)
-    new_network = ITensorNetworks.apply(op, idn; kwargs...)
+    new_network = ITensorNetworks.apply(op, idn)
     new_op = vectorize_density_matrix(new_network, ρ.unvectorizednetwork, siteinds(ρ))
     return ITensorNetworks.inner(ρ.network, new_op.network; kwargs...)
 end 

@@ -21,10 +21,12 @@ vsites = ITensorNetworks.siteinds("QubitVec", G)
 
 
 @testset "Prepare Parameters" begin
-    @test NoisyCircuits.prepare_params([π/2]) == Dict(:θ => π/2)
-    @test NoisyCircuits.prepare_params([π/2, π/4]) == Dict(:θ => π/2, :ϕ => π/4)
-    @test NoisyCircuits.prepare_params([π/2, π/4, π/8]) == Dict(:θ => π/2, :ϕ => π/4, :λ => π/8)
-    @test_throws "Only 3 parameters or less." NoisyCircuits.prepare_params([π/2, π/4, π/8, π/16])
+    @test NoisyCircuits.prepare_params([π/2], "U") == Dict(:θ => π/2)
+    @test NoisyCircuits.prepare_params([π/2, π/4], "U") == Dict(:θ => π/2, :ϕ => π/4)
+    @test NoisyCircuits.prepare_params([π/2, π/4, π/8], "U") == Dict(:θ => π/2, :ϕ => π/4, :λ => π/8)
+    @test_throws "Only 3 parameters or less." NoisyCircuits.prepare_params([π/2, π/4, π/8, π/16],  "U")
+    #TODO: I also need to add another test to make sure that it prepares params correctly for gates with different ordering 
+    # of parameters.
 end;
 
 @testset "Prepare noise for gate" begin

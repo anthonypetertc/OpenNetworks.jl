@@ -2,9 +2,12 @@ module NoisyCircuits
 export NoisyCircuit
 
 using ITensors
-using ITensorNetworks
+using ITensorNetworks: ITensorNetworks, apply, environment, ITensorNetwork
 using OpenSystemsTools
 using OpenNetworks: Channels, Utils, VectorizationNetworks, VDMNetworks, NoiseModels, GraphUtils
+using NamedGraphs: PartitionVertex
+using SplitApplyCombine: group
+
 
 VDMNetwork = VDMNetworks.VDMNetwork
 NoiseModel = NoiseModels.NoiseModel
@@ -24,6 +27,22 @@ struct NoisyCircuit
         moments_list = compile_into_moments(compressed_circuit, noise_model.vectorizedsiteinds)
         return new(moments_list, noise_model)
     end
+end
+
+function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, bp_cache:: Union{ITensorNetworks.BeliefPropagationCache, Nothing} = nothing; kwargs...):: VDMNetwork
+    for moment in noisy_circuit.moments_list
+        for channel in moment
+            if !(isa(bp_cache, Nothing))
+                indices = [ind for ind in inds(channel.tensor) if plev(ind) == 0]
+                sites = [Channels.find_site(ind, ρ) for ind in indices]
+                env = ITensorNetworks.environment(bp_cache, PartitionVertex.(sites))
+                ρ = Channels.apply(channel, ρ; envs=env, kwargs...)
+            else
+                ρ = Channels.apply(channel, ρ; kwargs...)
+            end
+        end
+    end
+    return ρ
 end
 
 
@@ -137,7 +156,7 @@ function add_noise_to_circuit(qc::Vector{Dict{String, Any}}, noise_model::NoiseM
         qubits = gate["Qubits"]
         name = gate["Name"]
         params = gate["Params"]
-        params = prepare_params(params)
+        params = prepare_params(params, name)
         tensor = make_gate(name, qubits, params, sites)
         gate_channel = Channel(name, [tensor], ρ)
         count = 0
@@ -171,8 +190,12 @@ function make_gate(name:: String, qubits:: Vector{<:Any}, params:: Dict, sites::
     return tensor
 end
 
-function prepare_params(params:: Vector{<:Any}):: Dict
+function prepare_params(params:: Vector{<:Any}, name::String):: Dict
     if length(params) > 3 throw("Only 3 parameters or less.") end
+    if (name == "Rzz") || (name == "Rxx") || (name == "Ryy") || (name == "Phase")
+        if length(params) != 1 throw("Incorrect number of parameters for gate $name.") end
+        return Dict(:ϕ => params[1]/2)
+    end
     possible_keywords = [:θ, :ϕ, :λ]
     keywords = possible_keywords[1:length(params)]
     return Dict(zip(keywords, params))
