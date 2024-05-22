@@ -1,11 +1,5 @@
 using Test
-using OpenSystemsTools
-using ITensors
 using OpenNetworks: VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels
-using NamedGraphs: named_grid
-using Random
-using LinearAlgebra
-using Graphs
 using ITensorNetworks
 using JSON
 
