@@ -38,7 +38,6 @@ function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, bp_cache:: 
                 env = ITensorNetworks.environment(bp_cache, PartitionVertex.(sites))
                 ρ = Channels.apply(channel, ρ; envs=env, kwargs...)
             else
-                println("Channel is $(channel.name)")
                 ρ = Channels.apply(channel, ρ; kwargs...)
             end
         end
