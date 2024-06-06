@@ -148,3 +148,31 @@ ring_ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ring_ψ, ri
     end
 end;
 
+@testset "Compilation into moments, small circuit." begin
+    circuit = JSON.parsefile("example_circuits/test_compile_circuit.json")
+    circuit = [Utils.typenarrow!(gate) for gate in circuit]
+
+    g = GraphUtils.extract_adjacency_graph(circuit, 9)
+    s = ITensorNetworks.siteinds("Qubit", g)
+    vs = ITensorNetworks.siteinds("QubitVec", g)
+
+    ψ = ITensorNetwork(v -> "0", s);
+    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vs)
+
+    p = 0.05
+    depol_channel = Channels.depolarizing_channel(p, [s[(0,)][1], s[(1,)][1]], ρ);
+    noise_instruction = NoiseModels.NoiseInstruction("depolarizing", depol_channel, [vs[(0,)][1], vs[(1,)][1]], Set(["Rzz"]), Set([vs[(i,)][1] for i in 0:1]));
+    noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), s, vs);
+
+    noisy_circuit = NoisyCircuits.add_noise_to_circuit(circuit, noise_model)
+    compressed_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
+    moments_list1 = NoisyCircuits.compile_into_moments(compressed_circuit, noise_model.vectorizedsiteinds)
+
+    @test [length(moment) for moment in moments_list1] == [2, 3, 3, 4, 3, 3]
+
+    # I have checked by hand that this circuit should have moments of length (2, 3, 3, 4, 3, 3)
+end;
+
+
+
+

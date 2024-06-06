@@ -1,7 +1,7 @@
 module VectorizationNetworks
 export vectorize_density_matrix, VDMNetwork, innerprod, unvectorize_density_matrix
 
-using ITensorNetworks: AbstractITensorNetwork, ITensorNetworks, ITensorNetwork, ⊗, siteinds
+using ITensorNetworks: AbstractITensorNetwork, ITensorNetworks, ITensorNetwork, ⊗, siteinds, VidalITensorNetwork
 using ITensors: ITensor, prime, dag, combiner, inds, inner, op, randomITensor, delta, ITensors, Index
 import ITensors: outer
 using OpenSystemsTools: Vectorization
@@ -113,60 +113,4 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     return ITensorNetworks.inner(ρ.network, new_op.network; kwargs...)
 end 
 
-#=
-function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
-    #= Purpose: Finds the site of an index.
-    Inputs: ind (ITensorIndex) - Index of an ITensor.
-    Returns: Int - Site of the index. =#
-    for key in keys(siteinds(ψ).data_graph.vertex_data)
-        if ind in siteinds(ψ)[key]
-            return key
-        end
-    end
-end
-
-
-function opdouble(o::ITensor, rho::AbstractITensorNetwork, ψ::ITensorNetwork)::ITensor
-    #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
-    Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            rho (ITensorNetwork) - Density Matrix of the system.
-    Returns: ITensor - Operator acting on the doubled Hilbert space. =#
-
-    inds = [ind for ind in ITensors.inds(o) if ITensors.plev(ind)==0]
-    vs = ITensors.siteinds(rho)
-    o_dag = ITensors.addtags(dag(o), "dag")
-    o *= o_dag
-    site_list = Vector{Tuple}()
-    for ind in inds
-        site = find_site(ind, ψ)
-        push!(site_list, site)
-        vinds = [vind for vind in ITensors.inds(rho[site]) if ITensors.hastags(vind, "Site")]
-        @assert length(vinds) == 1 "Tensors of a vectorized density matrix should have exactly one physical leg."
-        vind = vinds[1]
-        spacename = basespace(vind)
-        @assert ITensors.hastags(ind, spacename) "Operator must have the same site-type as vectorized MPS."
-
-        o *= ITensors.delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(ITensors.addtags(ITensors.dag(ind), "dag"),vectorizer_input(spacename)')
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind)
-
-        o *= ITensors.delta(ITensors.dag(ind)',ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(ITensors.addtags(ITensors.dag(ind)', "dag"),vectorizer_input(spacename)')
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind')
-    end
-    return o
-end
-
-function apply(o::ITensors.ITensor, ρ::ITensorNetwork, ψ::ITensorNetwork)::ITensorNetwork
-    #= Purpose: Applies an operator to a density matrix.
-    Inputs: o (ITensor) - Operator to apply.
-            ρ (ITensorNetwork) - Density matrix.
-    Returns: ITensorNetwork - New density matrix. =#
-    o2 = opdouble(o, ρ, ψ)
-    return ITensorNetworks.apply(o2, ρ)
-end
-=#
-
-end;
+end; # module
