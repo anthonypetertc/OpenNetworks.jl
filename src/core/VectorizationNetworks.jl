@@ -2,7 +2,7 @@ module VectorizationNetworks
 export vectorize_density_matrix, VDMNetwork, innerprod, unvectorize_density_matrix
 
 using ITensorNetworks: AbstractITensorNetwork, ITensorNetworks, ITensorNetwork, ⊗, siteinds, VidalITensorNetwork
-using ITensors: ITensor, prime, dag, combiner, inds, inner, op, randomITensor, delta, ITensors, Index
+using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index
 import ITensors: outer
 using OpenSystemsTools: Vectorization
 using OpenNetworks: Utils, VDMNetworks

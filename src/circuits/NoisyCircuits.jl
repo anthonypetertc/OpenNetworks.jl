@@ -275,4 +275,4 @@ function prepare_params(params:: Vector{<:Any}, name::String):: Dict
     return Dict(zip(keywords, params))
 end
 
-end # module
+end; # module

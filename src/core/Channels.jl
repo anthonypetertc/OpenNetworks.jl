@@ -11,8 +11,6 @@ vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 vectorize_density_matrix = Vectorization.vectorize_density_matrix
 vectorize_density_matrix! = Vectorization.vectorize_density_matrix!
-vectorizedexpect = Vectorization.vectorizedexpect
-leftrightapply = Vectorization.leftrightapply
 basespace = Vectorization.basespace
 VDMNetwork = VDMNetworks.VDMNetwork
 
