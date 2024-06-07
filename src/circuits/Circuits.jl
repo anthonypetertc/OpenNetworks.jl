@@ -21,12 +21,7 @@ run_circuit = NoisyCircuits.run_circuit
 function prepare_noiseless_circuit(
     qc::Vector{Dict{String,Any}}, sites::ITensorNetworks.IndsNetwork
 )
-    #g = GraphUtils.extract_adjacency_graph(qc, n_qubits)
-    #vsites = ITensorNetworks.siteinds("QubitVec", g)
-    #I should re-write some of my functions so that they don't require a reference state, only the site inds.
     ψ = ITensorNetwork(v -> "0", sites)
-    #ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
-    #channel_list = Vector{Channel}()
     gate_list = Vector{ITensor}()
     for gate in qc
         if !haskey(gate, "Qubits") || !haskey(gate, "Name") || !haskey(gate, "Params")
@@ -37,8 +32,6 @@ function prepare_noiseless_circuit(
         params = gate["Params"]
         params = NoisyCircuits.prepare_params(params, name)
         tensor = NoisyCircuits.make_gate(name, qubits, params, sites)
-        #gate_channel = Channel(name, [tensor], ρ)
-        #push!(channel_list, gate_channel)
         push!(gate_list, tensor)
     end
     return gate_list

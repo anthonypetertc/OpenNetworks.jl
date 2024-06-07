@@ -43,40 +43,6 @@ struct NoisyCircuit
         return new(moments_list, noise_model)
     end
 end
-#=
-function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, bp_cache:: Union{ITensorNetworks.BeliefPropagationCache, Nothing} = nothing, regauge_frequency::Integer = 100, gauge_tol=1e-6; kwargs...):: VDMNetwork
-    count = 0
-    @showprogress dt =1 desc="Applying circuit..." for moment in noisy_circuit.moments_list
-        for channel in moment
-            if !(isa(bp_cache, Nothing))
-                indices = [ind for ind in inds(channel.tensor) if plev(ind) == 0]
-                sites = [Channels.find_site(ind, ρ) for ind in indices]
-                env = ITensorNetworks.environment(bp_cache, PartitionVertex.(sites))
-                @show channel
-                @show ρ.network[(24,)]
-                @show ρ.network[(25,)]
-                ρ = Channels.apply(channel, ρ; envs=env, kwargs...)
-                count += 1
-                if count % 20 == 0
-                    println("Gauge error is $(ITensorNetworks.gauge_error(ITensorNetworks.VidalITensorNetwork(ρ.network)))")
-                    cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-                    ρv = ITensorNetworks.VidalITensorNetwork(ρ.network, (cache!)=cache_ref, cache_update_kwargs=(; maxiter=20, tol=1e-12, verbose=true))
-                    #println("Gauge error is $(ITensorNetworks.gauge_error(ρv))")
-                    cache_ref = Ref{BeliefPropagationCache}()
-                    ρsymm = ITensorNetwork(ρv; (cache!)=cache_ref)
-                    bp_cache = cache_ref[]
-                    println(siteinds(ρ.network) == siteinds(ρsymm))
-                    ρ = VDMNetwork(ρsymm, ρ.unvectorizednetwork)
-                    println("Got to the end of the first 20 gates.")
-                end
-            else
-                ρ = Channels.apply(channel, ρ; kwargs...)
-            end
-        end
-    end
-    return ρ
-end
-=#
 
 function ITensors.apply(
     ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...
