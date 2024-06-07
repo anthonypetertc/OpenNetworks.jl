@@ -2,70 +2,51 @@ module NoisyCircuits
 export NoisyCircuit
 
 using ITensors
-using ITensorNetworks: ITensorNetworks, apply, environment, ITensorNetwork, BeliefPropagationCache, norm_sqr_network, VidalITensorNetwork, siteinds, update, gauge_error, vertices
+using ITensorNetworks:
+    ITensorNetworks,
+    apply,
+    environment,
+    ITensorNetwork,
+    BeliefPropagationCache,
+    norm_sqr_network,
+    VidalITensorNetwork,
+    siteinds,
+    update,
+    gauge_error,
+    vertices
 
 using OpenSystemsTools
-using OpenNetworks: Channels, Utils, VectorizationNetworks, VDMNetworks, NoiseModels, GraphUtils
+using OpenNetworks:
+    Channels, Utils, VectorizationNetworks, VDMNetworks, NoiseModels, GraphUtils
 using NamedGraphs: PartitionVertex
 using SplitApplyCombine: group
 using ProgressMeter
-
 
 VDMNetwork = VDMNetworks.VDMNetwork
 NoiseModel = NoiseModels.NoiseModel
 Channel = Channels.Channel
 
 struct NoisyCircuit
-    moments_list:: Vector{Vector{Channel}}
-    noise_model:: NoiseModel
+    moments_list::Vector{Vector{Channel}}
+    noise_model::NoiseModel
 
-    function NoisyCircuit(moments_list:: Vector{Vector{Channel}}, noise_model:: NoiseModel)
+    function NoisyCircuit(moments_list::Vector{Vector{Channel}}, noise_model::NoiseModel)
         return new(moments_list, noise_model)
     end
 
-    function NoisyCircuit(list_of_dicts:: Vector{Dict{String, Any}}, noise_model:: NoiseModel)
+    function NoisyCircuit(list_of_dicts::Vector{Dict{String,Any}}, noise_model::NoiseModel)
         noisy_circuit = add_noise_to_circuit(list_of_dicts, noise_model)
         compressed_circuit = absorb_single_qubit_gates(noisy_circuit)
-        moments_list = compile_into_moments(compressed_circuit, noise_model.vectorizedsiteinds)
+        moments_list = compile_into_moments(
+            compressed_circuit, noise_model.vectorizedsiteinds
+        )
         return new(moments_list, noise_model)
     end
 end
-#=
-function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, bp_cache:: Union{ITensorNetworks.BeliefPropagationCache, Nothing} = nothing, regauge_frequency::Integer = 100, gauge_tol=1e-6; kwargs...):: VDMNetwork
-    count = 0
-    @showprogress dt =1 desc="Applying circuit..." for moment in noisy_circuit.moments_list
-        for channel in moment
-            if !(isa(bp_cache, Nothing))
-                indices = [ind for ind in inds(channel.tensor) if plev(ind) == 0]
-                sites = [Channels.find_site(ind, ρ) for ind in indices]
-                env = ITensorNetworks.environment(bp_cache, PartitionVertex.(sites))
-                @show channel
-                @show ρ.network[(24,)]
-                @show ρ.network[(25,)]
-                ρ = Channels.apply(channel, ρ; envs=env, kwargs...)
-                count += 1
-                if count % 20 == 0
-                    println("Gauge error is $(ITensorNetworks.gauge_error(ITensorNetworks.VidalITensorNetwork(ρ.network)))")
-                    cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-                    ρv = ITensorNetworks.VidalITensorNetwork(ρ.network, (cache!)=cache_ref, cache_update_kwargs=(; maxiter=20, tol=1e-12, verbose=true))
-                    #println("Gauge error is $(ITensorNetworks.gauge_error(ρv))")
-                    cache_ref = Ref{BeliefPropagationCache}()
-                    ρsymm = ITensorNetwork(ρv; (cache!)=cache_ref)
-                    bp_cache = cache_ref[]
-                    println(siteinds(ρ.network) == siteinds(ρsymm))
-                    ρ = VDMNetwork(ρsymm, ρ.unvectorizednetwork)
-                    println("Got to the end of the first 20 gates.")
-                end
-            else
-                ρ = Channels.apply(channel, ρ; kwargs...)
-            end
-        end
-    end
-    return ρ
-end
-=#
 
-function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...):: VDMNetwork
+function ITensors.apply(
+    ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...
+)::VDMNetwork
     for moment in noisy_circuit.moments_list
         for channel in moment
             ρ = Channels.apply(channel, ρ; apply_kwargs...)
@@ -74,14 +55,22 @@ function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwarg
     return ρ
 end
 
-function run_circuit(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, regauge_frequency::Integer = 50; cache_update_kwargs, apply_kwargs):: VDMNetwork
+function run_circuit(
+    ρ::VDMNetwork,
+    noisy_circuit::NoisyCircuit,
+    regauge_frequency::Integer=50;
+    cache_update_kwargs,
+    apply_kwargs,
+)::VDMNetwork
     norm_sqr = norm_sqr_network(ρ.network)
     #Simple Belief Propagation Grouping
     bp_cache = BeliefPropagationCache(norm_sqr, group(v -> v[1], vertices(norm_sqr)))
     bp_cache = update(bp_cache; maxiter=20)
     evolved_ψ = VidalITensorNetwork(ρ.network)
 
-    @showprogress dt = 1 desc="Applying circuit..." for (i, moment) in enumerate(noisy_circuit.moments_list)
+    @showprogress dt = 1 desc = "Applying circuit..." for (i, moment) in enumerate(
+        noisy_circuit.moments_list
+    )
         for (j, gate) in enumerate(moment)
             #println("Applying gate $j from moment $i")
             indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
@@ -89,7 +78,9 @@ function run_circuit(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, regauge_freque
             #env = ITensorNetworks.environment(bp_cache, PartitionVertex.(channel_sites))
             if length(channel_sites) == 1
                 #println("Applying single qubit gate")
-                evolved_ψ[channel_sites[1]] = ITensors.apply(gate, evolved_ψ[channel_sites[1]])
+                evolved_ψ[channel_sites[1]] = ITensors.apply(
+                    gate, evolved_ψ[channel_sites[1]]
+                )
             elseif length(channel_sites) == 2
                 #println("Applying a two qubit gate.")
                 evolved_ψ = ITensorNetworks.apply(gate.tensor, evolved_ψ; apply_kwargs...)
@@ -100,20 +91,25 @@ function run_circuit(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, regauge_freque
             #println("Gauge error is $ge")
             if ge > 1e-6 && i % regauge_frequency == 0
                 cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-                ψ_symm = ITensorNetwork(evolved_ψ, (cache!)=cache_ref)
-                evolved_ψ = VidalITensorNetwork(ψ_symm, (cache!)=cache_ref, cache_update_kwargs = (; cache_update_kwargs...))
+                ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
+                evolved_ψ = VidalITensorNetwork(
+                    ψ_symm;
+                    (cache!)=cache_ref,
+                    cache_update_kwargs=(; cache_update_kwargs...),
+                )
             end
         end
     end
 
     cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-    global ψ_symm = ITensorNetwork(evolved_ψ, (cache!)=cache_ref)
+    global ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
     evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizednetwork)
     return evolved_ρ
 end
 
-
-function compile_into_moments!(channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork)::Vector{Vector{Channel}}
+function compile_into_moments!(
+    channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork
+)::Vector{Vector{Channel}}
     sites = Set{ITensors.Index{<:Any}}()
     for key in keys(siteinds.data_graph.vertex_data)
         push!(sites, siteinds[key][1])
@@ -122,7 +118,9 @@ function compile_into_moments!(channel_list::Vector{Channel}, siteinds::ITensorN
     current_moment = Vector{Channel}()
     current_moment_inds = Set{ITensors.Index{<:Any}}()
     while channel_list != []
-        current_moment, current_moment_inds, channel_list = single_pass_compile_into_moments!(channel_list, current_moment, current_moment_inds)
+        current_moment, current_moment_inds, channel_list = single_pass_compile_into_moments!(
+            channel_list, current_moment, current_moment_inds
+        )
         pushfirst!(moments_list, current_moment)
         current_moment = Vector{Channel}()
         current_moment_inds = Set{ITensors.Index{<:Any}}()
@@ -130,8 +128,14 @@ function compile_into_moments!(channel_list::Vector{Channel}, siteinds::ITensorN
     return moments_list
 end
 
-function single_pass_compile_into_moments!(channel_list:: Vector{Channel}, current_moment:: Vector{Channel}, current_moment_inds:: Set{ITensors.Index{<:Any}}):: Tuple{Vector{Channel}, Set{ITensors.Index{<:Any}}, Vector{Channel}}
-    if channel_list == [] throw("Empty channel list.") end
+function single_pass_compile_into_moments!(
+    channel_list::Vector{Channel},
+    current_moment::Vector{Channel},
+    current_moment_inds::Set{ITensors.Index{<:Any}},
+)::Tuple{Vector{Channel},Set{ITensors.Index{<:Any}},Vector{Channel}}
+    if channel_list == []
+        throw("Empty channel list.")
+    end
     for (i, channel) in enumerate(reverse(channel_list))
         current_inds = Set([ind for ind in inds(channel.tensor) if plev(ind) == 0])
         if current_inds ∩ current_moment_inds == Set()
@@ -144,10 +148,14 @@ function single_pass_compile_into_moments!(channel_list:: Vector{Channel}, curre
     end
     return current_moment, current_moment_inds, channel_list
 end
-    
-compile_into_moments(channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork) = compile_into_moments!(deepcopy(channel_list), siteinds)
 
-function absorb_single_qubit_gates(channel_list:: Vector{Channel}):: Vector{Channel}
+function compile_into_moments(
+    channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork
+)
+    return compile_into_moments!(deepcopy(channel_list), siteinds)
+end
+
+function absorb_single_qubit_gates(channel_list::Vector{Channel})::Vector{Channel}
     new_channel_list = Vector{Channel}()
     single_qubit_list = Vector{Channel}()
     index_list = Vector{Any}()
@@ -173,12 +181,16 @@ function absorb_single_qubit_gates(channel_list:: Vector{Channel}):: Vector{Chan
             push!(new_channel_list, new_channel)
         end
     end
-    squeezed_single_qubits, new_index_list = squeeze_single_qubit_gates(single_qubit_list, index_list)
-    for j in 0:(length(new_channel_list)-1)
+    squeezed_single_qubits, new_index_list = squeeze_single_qubit_gates(
+        single_qubit_list, index_list
+    )
+    for j in 0:(length(new_channel_list) - 1)
         locations_to_remove = []
         for (i, index) in enumerate(new_index_list)
-            if index in inds(new_channel_list[end-j].tensor)
-                new_channel_list[end-j] = Channels.compose(squeezed_single_qubits[i], new_channel_list[end-j])
+            if index in inds(new_channel_list[end - j].tensor)
+                new_channel_list[end - j] = Channels.compose(
+                    squeezed_single_qubits[i], new_channel_list[end - j]
+                )
                 push!(locations_to_remove, i)
             end
         end
@@ -191,9 +203,9 @@ function absorb_single_qubit_gates(channel_list:: Vector{Channel}):: Vector{Chan
     return new_channel_list
 end
 
-
-
-function squeeze_single_qubit_gates(channel_list:: Vector{Channel}, index_list::Vector{<:Any}):: Tuple{Vector{Channel}, Vector{<:Any}}
+function squeeze_single_qubit_gates(
+    channel_list::Vector{Channel}, index_list::Vector{<:Any}
+)::Tuple{Vector{Channel},Vector{<:Any}}
     new_channel_list = Vector{Channel}()
     new_index_list = Vector{ITensors.Any}()
     index_set = Set(index_list)
@@ -210,18 +222,24 @@ function squeeze_single_qubit_gates(channel_list:: Vector{Channel}, index_list::
     return new_channel_list, new_index_list
 end
 
-#TODO: Would also be good to write another function that adds noise to a circuit represented as a list of channels or ITensors instead as 
-#the list of dicts that I am using at the moment. 
+#TODO: Would also be good to write another function that adds noise to a circuit represented as a list of channels or ITensors instead as
+#the list of dicts that I am using at the moment.
 
-function add_noise_to_circuit(qc::Vector{Dict{String, Any}}, noise_model::NoiseModels.NoiseModel)::Vector{Channel}
+function add_noise_to_circuit(
+    qc::Vector{Dict{String,Any}}, noise_model::NoiseModels.NoiseModel
+)::Vector{Channel}
     n_qubits = length(keys(noise_model.siteinds.data_graph.vertex_data))
-    if (GraphUtils.extract_adjacency_graph(qc, n_qubits) != noise_model.siteinds.data_graph.underlying_graph)
-         throw("The circuit and the noiseNoisyCircuits model do not have the same sites.") end
+    if (
+        GraphUtils.extract_adjacency_graph(qc, n_qubits) !=
+        noise_model.siteinds.data_graph.underlying_graph
+    )
+        throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
+    end
     sites = noise_model.siteinds
     vsites = noise_model.vectorizedsiteinds
     #I should re-write some of my functions so that they don't require a reference state, only the site inds.
-    ψ = ITensorNetwork(v -> "0", sites);
-    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ),ψ, vsites)
+    ψ = ITensorNetwork(v -> "0", sites)
+    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
     channel_list = Vector{Channel}()
     for gate in qc
         if !haskey(gate, "Qubits") || !haskey(gate, "Name") || !haskey(gate, "Params")
@@ -235,12 +253,18 @@ function add_noise_to_circuit(qc::Vector{Dict{String, Any}}, noise_model::NoiseM
         gate_channel = Channel(name, [tensor], ρ)
         count = 0
         for instruction in noise_model.noise_instructions
-            if issubset(Set([vsites[(i,)][1] for i in qubits]), instruction.qubits_noise_applies_to) && name in instruction.name_of_gates
+            if issubset(
+                Set([vsites[(i,)][1] for i in qubits]), instruction.qubits_noise_applies_to
+            ) && name in instruction.name_of_gates
                 #Need to introduce logging: println("Adding noise to gate.")
-                if count !=0 throw("Multiple instructions for the same gate.") end
+                if count != 0
+                    throw("Multiple instructions for the same gate.")
+                end
                 count += 1
                 index_ordering_of_gate = [vsites[(i,)][1] for i in qubits]
-                noise_channel = NoiseModels.prepare_noise_for_gate(instruction, index_ordering_of_gate)
+                noise_channel = NoiseModels.prepare_noise_for_gate(
+                    instruction, index_ordering_of_gate
+                )
                 gate_channel = Channels.compose(noise_channel, gate_channel)
             end
         end
@@ -249,11 +273,12 @@ function add_noise_to_circuit(qc::Vector{Dict{String, Any}}, noise_model::NoiseM
     return channel_list
 end
 
-
-function make_gate(name:: String, qubits:: Vector{<:Any}, params:: Dict, sites::ITensorNetworks.IndsNetwork):: ITensors.ITensor
-    ss = [sites[(qubit,)] for qubit in qubits] 
+function make_gate(
+    name::String, qubits::Vector{<:Any}, params::Dict, sites::ITensorNetworks.IndsNetwork
+)::ITensors.ITensor
+    ss = [sites[(qubit,)] for qubit in qubits]
     if length(qubits) == 1
-        tensor = op(name, ss[1][1]; params...) 
+        tensor = op(name, ss[1][1]; params...)
     elseif length(qubits) == 2
         tensor = op(name, ss[1][1], ss[2][1]; params...)
     elseif length(qubits) == 3
@@ -264,11 +289,15 @@ function make_gate(name:: String, qubits:: Vector{<:Any}, params:: Dict, sites::
     return tensor
 end
 
-function prepare_params(params:: Vector{<:Any}, name::String):: Dict
-    if length(params) > 3 throw("Only 3 parameters or less.") end
+function prepare_params(params::Vector{<:Any}, name::String)::Dict
+    if length(params) > 3
+        throw("Only 3 parameters or less.")
+    end
     if (name == "Rzz") || (name == "Rxx") || (name == "Ryy") || (name == "Phase")
-        if length(params) != 1 throw("Incorrect number of parameters for gate $name.") end
-        return Dict(:ϕ => params[1]/2)
+        if length(params) != 1
+            throw("Incorrect number of parameters for gate $name.")
+        end
+        return Dict(:ϕ => params[1] / 2)
     end
     possible_keywords = [:θ, :ϕ, :λ]
     keywords = possible_keywords[1:length(params)]

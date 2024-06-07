@@ -2,13 +2,24 @@ module Utils
 export swapprime, swapprime!, innerprod, outer, trace
 
 using ITensors
-using ITensorNetworks: AbstractITensorNetwork, siteinds, ⊗, prime, dag, contract, ITensorNetwork, ITensorNetworks, edges
+using ITensorNetworks:
+    AbstractITensorNetwork,
+    siteinds,
+    ⊗,
+    prime,
+    dag,
+    contract,
+    ITensorNetwork,
+    ITensorNetworks,
+    edges
 import ITensors: swapprime, swapprime!, outer, siteinds
 using OpenNetworks: VDMNetworks
 
 VDMNetwork = VDMNetworks.VDMNetwork
 
-function swapprime!(ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...)::AbstractITensorNetwork
+function swapprime!(
+    ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...
+)::AbstractITensorNetwork
     #= Purpose: Swaps the prime level of the ITensorNetwork.
     Inputs: ψ (AbstractITensorNetwork) - ITensorNetwork to swap the prime level of.
     Returns: AbstractITensorNetwork - ITensorNetwork with the prime level swapped. =#
@@ -19,7 +30,9 @@ function swapprime!(ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...)::
     return ψ
 end
 
-function swapprime(ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...)::AbstractITensorNetwork
+function swapprime(
+    ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...
+)::AbstractITensorNetwork
     return swapprime!(deepcopy(ψ), pl1, pl2; kwargs...)
 end
 
@@ -41,7 +54,6 @@ function innerprod(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Comp
     return Array(contract(ψ ⊗ dag(ϕ)).tensor)[1]
 end
 
-
 function innerprod(ρ::VDMNetwork, ϕ::VDMNetwork)::Complex
     return innerprod(ρ.network, ϕ.network)
 end
@@ -50,9 +62,9 @@ function siteinds(ρ::VDMNetwork)::ITensorNetworks.IndsNetwork
     return siteinds(ρ.network)
 end
 
-
-
-function compress_underlying_graph(o::AbstractITensorNetwork, ψ::AbstractITensorNetwork)::AbstractITensorNetwork
+function compress_underlying_graph(
+    o::AbstractITensorNetwork, ψ::AbstractITensorNetwork
+)::AbstractITensorNetwork
     vd = copy(ψ.data_graph.vertex_data)
     for key in keys(vd)
         vd[key] = o[(key, 1)] * o[(key, 2)]
@@ -60,13 +72,14 @@ function compress_underlying_graph(o::AbstractITensorNetwork, ψ::AbstractITenso
     return ITensorNetwork(vd)
 end
 
-
 function merge_bond_legs(ψ::AbstractITensorNetwork)::AbstractITensorNetwork
     dg = ψ.data_graph
     for edge in edges(ψ)
         o1 = dg.vertex_data[edge.src]
         o2 = dg.vertex_data[edge.dst]
-        connecting_bonds = [bond for bond in intersect(inds(o1), inds(o2)) if plev(bond) == 0]
+        connecting_bonds = [
+            bond for bond in intersect(inds(o1), inds(o2)) if plev(bond) == 0
+        ]
         if length(connecting_bonds) > 0
             for bond in connecting_bonds
                 C = combiner(bond, bond'; tags=tags(bond))
@@ -79,19 +92,23 @@ function merge_bond_legs(ψ::AbstractITensorNetwork)::AbstractITensorNetwork
     end
     return ITensorNetworks._ITensorNetwork(dg)
 end
-        
-
 
 function outer(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::AbstractITensorNetwork
     #= Purpose: Computes the outer product of two ITensorNetworks.
     Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
             ϕ (AbstractITensorNetwork) - Second ITensorNetwork.
     Returns: ITensorNetwork - Outer product of the two ITensorNetworks. =#
-    if  !(ψ.data_graph.underlying_graph == ϕ.data_graph.underlying_graph) throw("The two ITensorNetworks must have the same underlying graph.") end
-    for key in keys(ψ.data_graph.vertex_data)
-        if !(Set(inds(ψ[key])) == Set(inds(ϕ[key]))) throw("The two ITensorNetworks must have the bond indices labelled in the same way.") end
+    if !(ψ.data_graph.underlying_graph == ϕ.data_graph.underlying_graph)
+        throw("The two ITensorNetworks must have the same underlying graph.")
     end
-    ψϕ =  ψ ⊗ prime(dag(ϕ))
+    for key in keys(ψ.data_graph.vertex_data)
+        if !(Set(inds(ψ[key])) == Set(inds(ϕ[key])))
+            throw(
+                "The two ITensorNetworks must have the bond indices labelled in the same way.",
+            )
+        end
+    end
+    ψϕ = ψ ⊗ prime(dag(ϕ))
     return merge_bond_legs(compress_underlying_graph(ψϕ, ψ))
 end
 
@@ -102,7 +119,9 @@ function trace(ρ::AbstractITensorNetwork)::Complex
     ρ = deepcopy(ρ)
     for key in keys(ρ.data_graph.vertex_data)
         s = [ind for ind in inds(ρ[key]) if hastags(ind, "Site") && plev(ind) == 0]
-        if !(length(s) == 1) throw("Should only be one physical leg per site.") end
+        if !(length(s) == 1)
+            throw("Should only be one physical leg per site.")
+        end
         ρ[key] *= delta(s[1], prime(s[1]))
     end
     return Array(contract(ρ).tensor)[1]
@@ -124,7 +143,7 @@ function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwo
     end
 end
 
-function typenarrow!(d::Dict{<:Any, <:Any})
+function typenarrow!(d::Dict{<:Any,<:Any})
     for key in keys(d)
         if typeof(d[key]) == Dict
             typenarrow!(d[key])
