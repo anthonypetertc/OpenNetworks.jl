@@ -16,16 +16,15 @@ VDMNetwork = VDMNetworks.VDMNetwork
 
 #Do I need this?
 
-ITensors.op(::OpName"id",::SiteType"Qubit") =
- [1 0
-  0 1]
+ITensors.op(::OpName"id", ::SiteType"Qubit") = [
+    1 0
+    0 1
+]
 
-ITensors.op(::OpName"0tens",::SiteType"Qubit") =
-    [0 0
-    0 0]
-
-
-
+ITensors.op(::OpName"0tens", ::SiteType"Qubit") = [
+    0 0
+    0 0
+]
 
 function vexpect(obs::MPO, rho::MPS)
     @assert false "vexpect has not been tested yet."
@@ -34,15 +33,13 @@ function vexpect(obs::MPO, rho::MPS)
     return inner(vobs, rho)
 end
 
-
-
 function tagstring(T::ITensors.TagSet)::String
     # Purpose: Takes a tag set and converts it into a string.
 
     res = ""
     ts = [tag for tag in T]
     N = length(T)
-    for i in 1:N-1
+    for i in 1:(N - 1)
         res *= "$(ts[i]),"
     end
     res *= "$(ts[N])"
@@ -52,7 +49,7 @@ end
 function find_site(ind::ITensors.Index)
     #= Purpose: Given a site index for an ITensor, this function will return the site it corresponds to.=#
 
-    @assert hastags(ind, "Site") "Can't find site: Index has no site." 
+    @assert hastags(ind, "Site") "Can't find site: Index has no site."
     ts = tagstring(tags(ind))
     site = Vector{Int}()
     for s in split(ts, ",")
@@ -87,15 +84,13 @@ function find_site(ind::ITensors.Index, ρ::VDMNetwork)::Tuple
     return find_site(ind, ρ.network)
 end
 
-    
-
 function opdouble(o::ITensor, rho::MPS)::ITensor
     #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
     Inputs: o (ITensor) - Operator on underlying Hilbert Space.
             rho (MPS) - Density Matrix of the system.
     Returns: ITensor - Operator acting on the doubled Hilbert space. =#
 
-    inds = [ind for ind in ITensors.inds(o) if plev(ind)==0]
+    inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
     vs = ITensors.siteinds(rho)
     o_dag = addtags(dag(o), "dag")
     o *= o_dag
@@ -110,12 +105,14 @@ function opdouble(o::ITensor, rho::MPS)::ITensor
         @assert hastags(ind, spacename) "Operator must have the same site-type as vectorized MPS."
 
         o *= ITensors.delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(addtags(ITensors.dag(ind), "dag"),vectorizer_input(spacename)')
+        o *= ITensors.delta(addtags(ITensors.dag(ind), "dag"), vectorizer_input(spacename)')
         o *= vectorizer(spacename)
         o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind)
 
-        o *= ITensors.delta(ITensors.dag(ind)',ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(addtags(ITensors.dag(ind)', "dag"),vectorizer_input(spacename)')
+        o *= ITensors.delta(ITensors.dag(ind)', ITensors.dag(vectorizer_input(spacename)))
+        o *= ITensors.delta(
+            addtags(ITensors.dag(ind)', "dag"), vectorizer_input(spacename)'
+        )
         o *= vectorizer(spacename)
         o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind')
     end
@@ -130,7 +127,7 @@ function opdouble(o::ITensor, rho::VDMNetwork)::ITensor
     ψ = rho.unvectorizednetwork
     rho = rho.network
 
-    inds = [ind for ind in ITensors.inds(o) if ITensors.plev(ind)==0]
+    inds = [ind for ind in ITensors.inds(o) if ITensors.plev(ind) == 0]
     vs = siteinds(rho)
     o_dag = ITensors.addtags(dag(o), "dag")
     o *= o_dag
@@ -138,19 +135,25 @@ function opdouble(o::ITensor, rho::VDMNetwork)::ITensor
     for ind in inds
         site = find_site(ind, ψ)
         push!(site_list, site)
-        vinds = [vind for vind in ITensors.inds(rho[site]) if ITensors.hastags(vind, "Site")]
+        vinds = [
+            vind for vind in ITensors.inds(rho[site]) if ITensors.hastags(vind, "Site")
+        ]
         @assert length(vinds) == 1 "Tensors of a vectorized density matrix should have exactly one physical leg."
         vind = vinds[1]
         spacename = basespace(vind)
         @assert ITensors.hastags(ind, spacename) "Operator must have the same site-type as vectorized MPS."
 
         o *= ITensors.delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(ITensors.addtags(ITensors.dag(ind), "dag"),vectorizer_input(spacename)')
+        o *= ITensors.delta(
+            ITensors.addtags(ITensors.dag(ind), "dag"), vectorizer_input(spacename)'
+        )
         o *= vectorizer(spacename)
         o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind)
 
-        o *= ITensors.delta(ITensors.dag(ind)',ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(ITensors.addtags(ITensors.dag(ind)', "dag"),vectorizer_input(spacename)')
+        o *= ITensors.delta(ITensors.dag(ind)', ITensors.dag(vectorizer_input(spacename)))
+        o *= ITensors.delta(
+            ITensors.addtags(ITensors.dag(ind)', "dag"), vectorizer_input(spacename)'
+        )
         o *= vectorizer(spacename)
         o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind')
     end
@@ -162,8 +165,8 @@ function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool
     Inputs: kraus_maps_true (Vector{ITensor}) - Vector of Kraus operators.
     Returns: Bool - True if ΣKK† ≈ I, False otherwise. =#
     kraus_maps = [deepcopy(kr) for kr in kraus_maps_true]
-    sites = [ind for ind in ITensors.inds(kraus_maps[1]) if plev(ind)==0]
-    kr_sum = reduce(*, [op("0tens", site) for site in sites]) 
+    sites = [ind for ind in ITensors.inds(kraus_maps[1]) if plev(ind) == 0]
+    kr_sum = reduce(*, [op("0tens", site) for site in sites])
     id_ops = reduce(*, [op("id", site) for site in sites])
     for kr in kraus_maps
         @assert typeof(kr) == ITensor
@@ -187,8 +190,6 @@ function _krausindscheck(kraus_maps::Vector)
     end
 end
 
-
-
 struct Channel
     name::String
     tensor::ITensor
@@ -198,29 +199,30 @@ struct Channel
     end
 
     function Channel(name::String, kraus_maps::Vector{ITensor}, rho::MPS)
-            @assert _krauscheck(kraus_maps)==true "Kraus operators invalid: ΣKK† ≆ I"
-            _krausindscheck(kraus_maps)
-            tensor = reduce(+, [opdouble(kraus, rho) for kraus in kraus_maps])
-            return new(name, tensor)
+        @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣKK† ≆ I"
+        _krausindscheck(kraus_maps)
+        tensor = reduce(+, [opdouble(kraus, rho) for kraus in kraus_maps])
+        return new(name, tensor)
     end
 
     function Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork)
-            @assert _krauscheck(kraus_maps)==true "Kraus operators invalid: ΣKK† ≆ I"
-            _krausindscheck(kraus_maps)
-            tensor = reduce(+, [opdouble(kraus, ρ) for kraus in kraus_maps])
-            return new(name, tensor)
+        @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣKK† ≆ I"
+        _krausindscheck(kraus_maps)
+        tensor = reduce(+, [opdouble(kraus, ρ) for kraus in kraus_maps])
+        return new(name, tensor)
     end
 end
 
-
-function depolarizing_channel(p::Real, sites::Vector, rho:: MPS)::Channel
+function depolarizing_channel(p::Real, sites::Vector, rho::MPS)::Channel
     #= Purpose: Creates a depolarizing channel for a given density matrix.
     Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
             sites (Vector) - Vector of sites that the channel acts on.
             rho (MPS) - Density matrix that the channel acts on.
     Returns: Channel - Depolarizing channel with the given parameters. =#
 
-    if !(0 <= p <= 1) throw("parameter p must be between 0 and 1.") end
+    if !(0 <= p <= 1)
+        throw("parameter p must be between 0 and 1.")
+    end
     for site in sites
         @assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
         @assert hastags(site, "Qubit") "Depolarizing channel only implemented for Qubits."
@@ -228,60 +230,90 @@ function depolarizing_channel(p::Real, sites::Vector, rho:: MPS)::Channel
 
     k = length(sites)
     if k == 1
-        const0 = sqrt(1 - 3*p/4)
-        constσ = sqrt(p/4)
-        kraus_maps = [constσ*op("σx", sites[1]), constσ*op("σy", sites[1]), constσ*op("σz", sites[1]), const0*op("Id", sites[1])]
+        const0 = sqrt(1 - 3 * p / 4)
+        constσ = sqrt(p / 4)
+        kraus_maps = [
+            constσ * op("σx", sites[1]),
+            constσ * op("σy", sites[1]),
+            constσ * op("σz", sites[1]),
+            const0 * op("Id", sites[1]),
+        ]
         return Channel("depolarizing", kraus_maps, rho)
 
-    elseif k==2
-        const0 = sqrt(1 - 15*p/16)
-        constσ = sqrt(p/16)
-        pauli1 = [op("σx", sites[1]), op("σy", sites[1]), op("σz", sites[1]), op("Id", sites[1])]
-        pauli2 = [op("σx", sites[2]), op("σy", sites[2]), op("σz", sites[2]), op("Id", sites[2])]
-        kraus_maps = [constσ*x*y for x in pauli1 for y in pauli2]
-        replace!(kraus_maps, Pair(constσ*pauli1[end]*pauli2[end], const0*pauli1[end]*pauli2[end]))
+    elseif k == 2
+        const0 = sqrt(1 - 15 * p / 16)
+        constσ = sqrt(p / 16)
+        pauli1 = [
+            op("σx", sites[1]), op("σy", sites[1]), op("σz", sites[1]), op("Id", sites[1])
+        ]
+        pauli2 = [
+            op("σx", sites[2]), op("σy", sites[2]), op("σz", sites[2]), op("Id", sites[2])
+        ]
+        kraus_maps = [constσ * x * y for x in pauli1 for y in pauli2]
+        replace!(
+            kraus_maps,
+            Pair(constσ * pauli1[end] * pauli2[end], const0 * pauli1[end] * pauli2[end]),
+        )
         return Channel("depolarizing", kraus_maps, rho)
-    
+
     else
-        throw("Depolarizing channel for more than two qubit gates has not been implemented.")
+        throw(
+            "Depolarizing channel for more than two qubit gates has not been implemented."
+        )
     end
 end
 
-
-function depolarizing_channel(p::Real, sites::Vector, rho:: VDMNetwork)::Channel
+function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork)::Channel
     #= Purpose: Creates a depolarizing channel for a given density matrix.
     Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
             sites (Vector) - Vector of sites that the channel acts on.
             rho (MPS) - Density matrix that the channel acts on.
     Returns: Channel - Depolarizing channel with the given parameters. =#
 
-    if !(0 < p <= 1) throw("parameter p must be between 0 and 1.") end
+    if !(0 < p <= 1)
+        throw("parameter p must be between 0 and 1.")
+    end
     for site in sites
         #@assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
-        if !(hastags(site, "Qubit")) throw("Depolarizing channel only implemented for Qubits.") end
+        if !(hastags(site, "Qubit"))
+            throw("Depolarizing channel only implemented for Qubits.")
+        end
     end
 
     k = length(sites)
     if k == 1
-        const0 = sqrt(1 - 3*p/4)
-        constσ = sqrt(p/4)
-        kraus_maps = [constσ*op("σx", sites[1]), constσ*op("σy", sites[1]), constσ*op("σz", sites[1]), const0*op("Id", sites[1])]
+        const0 = sqrt(1 - 3 * p / 4)
+        constσ = sqrt(p / 4)
+        kraus_maps = [
+            constσ * op("σx", sites[1]),
+            constσ * op("σy", sites[1]),
+            constσ * op("σz", sites[1]),
+            const0 * op("Id", sites[1]),
+        ]
         return Channel("depolarizing", kraus_maps, rho)
 
-    elseif k==2
-        const0 = sqrt(1 - 15*p/16)
-        constσ = sqrt(p/16)
-        pauli1 = [op("σx", sites[1]), op("σy", sites[1]), op("σz", sites[1]), op("Id", sites[1])]
-        pauli2 = [op("σx", sites[2]), op("σy", sites[2]), op("σz", sites[2]), op("Id", sites[2])]
-        kraus_maps = [constσ*x*y for x in pauli1 for y in pauli2]
-        replace!(kraus_maps, Pair(constσ*pauli1[end]*pauli2[end], const0*pauli1[end]*pauli2[end]))
+    elseif k == 2
+        const0 = sqrt(1 - 15 * p / 16)
+        constσ = sqrt(p / 16)
+        pauli1 = [
+            op("σx", sites[1]), op("σy", sites[1]), op("σz", sites[1]), op("Id", sites[1])
+        ]
+        pauli2 = [
+            op("σx", sites[2]), op("σy", sites[2]), op("σz", sites[2]), op("Id", sites[2])
+        ]
+        kraus_maps = [constσ * x * y for x in pauli1 for y in pauli2]
+        replace!(
+            kraus_maps,
+            Pair(constσ * pauli1[end] * pauli2[end], const0 * pauli1[end] * pauli2[end]),
+        )
         return Channel("depolarizing", kraus_maps, rho)
-    
+
     else
-        throw("Depolarizing channel for more than two qubit gates has not been implemented.")
+        throw(
+            "Depolarizing channel for more than two qubit gates has not been implemented."
+        )
     end
 end
-
 
 function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     channel_tensor = channel.tensor
@@ -290,18 +322,20 @@ end
 
 function apply(channel::Channel, ρ::VDMNetwork; kwargs...)::VDMNetwork
     channel_tensor = channel.tensor
-    return VDMNetwork(ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizednetwork)
+    return VDMNetwork(
+        ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizednetwork
+    )
 end
-
-
 
 function apply(o::ITensors.ITensor, ρ::VDMNetwork)::VDMNetwork
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network), ρ.unvectorizednetwork)
 end
 
-function compose(post:: Channel, pre::Channel)::Channel
-    matching = [ind for ind in inds(post.tensor) if ind in inds(pre.tensor) && plev(ind)==0]
+function compose(post::Channel, pre::Channel)::Channel
+    matching = [
+        ind for ind in inds(post.tensor) if ind in inds(pre.tensor) && plev(ind) == 0
+    ]
     tens_post = deepcopy(post.tensor)
     tens_pre = deepcopy(pre.tensor)
     for ind in matching
