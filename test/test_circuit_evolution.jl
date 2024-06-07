@@ -34,6 +34,9 @@ end;
     circuit = Circuits.prepare_noiseless_circuit(qc, sites)
     apply_kwargs = Dict{Symbol,Real}(:maxdim => 50, :cutoff => 1e-16)
     cache_update_kwargs = Dict{Symbol,Any}(:maxiter => 16, :tol => 1e-6, :verbose => true)
-    evolved_ψ = Circuits.run_compiled_circuit(ψ, circuit; cache_update_kwargs, apply_kwargs)
+    progress_kwargs = Dict{Symbol,Any}(:enabled => false)
+    evolved_ψ = Circuits.run_compiled_circuit(
+        ψ, circuit; progress_kwargs, cache_update_kwargs, apply_kwargs
+    )
     @test abs(ITensorNetworks.inner(ψ, evolved_ψ)) ≈ 1.0
 end;

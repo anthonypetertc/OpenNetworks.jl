@@ -156,7 +156,7 @@ ring_ρ = VectorizationNetworks.vectorize_density_matrix(
     noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites)
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circ, noise_model)
     compressed_noisy_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
-    compiled_noisy_circuit = NoisyCircuits.compile_into_moments(
+    compiled_noisy_circuit, n_gates = NoisyCircuits.compile_into_moments(
         compressed_noisy_circuit, vsites
     )
     circuit_object = NoisyCircuits.NoisyCircuit(circ, noise_model)
@@ -220,7 +220,7 @@ end;
 
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circuit, noise_model)
     compressed_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
-    moments_list1 = NoisyCircuits.compile_into_moments(
+    moments_list1, _ = NoisyCircuits.compile_into_moments(
         compressed_circuit, noise_model.vectorizedsiteinds
     )
 

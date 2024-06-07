@@ -17,7 +17,13 @@ using ITensorNetworks:
 
 using OpenSystemsTools
 using OpenNetworks:
-    Channels, Utils, VectorizationNetworks, VDMNetworks, NoiseModels, GraphUtils
+    Channels,
+    Utils,
+    VectorizationNetworks,
+    VDMNetworks,
+    NoiseModels,
+    GraphUtils,
+    ProgressSettings
 using NamedGraphs: PartitionVertex
 using SplitApplyCombine: group
 using ProgressMeter
@@ -25,22 +31,26 @@ using ProgressMeter
 VDMNetwork = VDMNetworks.VDMNetwork
 NoiseModel = NoiseModels.NoiseModel
 Channel = Channels.Channel
+default_progress_kwargs = ProgressSettings.default_progress_kwargs
 
 struct NoisyCircuit
     moments_list::Vector{Vector{Channel}}
     noise_model::NoiseModel
+    n_gates::Int
 
-    function NoisyCircuit(moments_list::Vector{Vector{Channel}}, noise_model::NoiseModel)
-        return new(moments_list, noise_model)
+    function NoisyCircuit(
+        moments_list::Vector{Vector{Channel}}, noise_model::NoiseModel, n_gates::Int
+    )
+        return new(moments_list, noise_model, n_gates)
     end
 
     function NoisyCircuit(list_of_dicts::Vector{Dict{String,Any}}, noise_model::NoiseModel)
         noisy_circuit = add_noise_to_circuit(list_of_dicts, noise_model)
         compressed_circuit = absorb_single_qubit_gates(noisy_circuit)
-        moments_list = compile_into_moments(
+        moments_list, n_gates = compile_into_moments(
             compressed_circuit, noise_model.vectorizedsiteinds
         )
-        return new(moments_list, noise_model)
+        return new(moments_list, noise_model, n_gates)
     end
 end
 
@@ -59,6 +69,7 @@ function run_circuit(
     ρ::VDMNetwork,
     noisy_circuit::NoisyCircuit,
     regauge_frequency::Integer=50;
+    progress_kwargs=default_progress_kwargs,
     cache_update_kwargs,
     apply_kwargs,
 )::VDMNetwork
@@ -68,9 +79,8 @@ function run_circuit(
     bp_cache = update(bp_cache; maxiter=20)
     evolved_ψ = VidalITensorNetwork(ρ.network)
 
-    @showprogress dt = 1 desc = "Applying circuit..." for (i, moment) in enumerate(
-        noisy_circuit.moments_list
-    )
+    p = Progress(noisy_circuit.n_gates; progress_kwargs...)
+    for (i, moment) in enumerate(noisy_circuit.moments_list)
         for (j, gate) in enumerate(moment)
             #println("Applying gate $j from moment $i")
             indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
@@ -97,6 +107,7 @@ function run_circuit(
                     (cache!)=cache_ref,
                     cache_update_kwargs=(; cache_update_kwargs...),
                 )
+                ProgressMeter.next!(p)
             end
         end
     end
@@ -109,7 +120,7 @@ end
 
 function compile_into_moments!(
     channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork
-)::Vector{Vector{Channel}}
+)::Tuple{Vector{Vector{Channel}},Int}
     sites = Set{ITensors.Index{<:Any}}()
     for key in keys(siteinds.data_graph.vertex_data)
         push!(sites, siteinds[key][1])
@@ -117,6 +128,7 @@ function compile_into_moments!(
     moments_list = Vector{Vector{Channel}}()
     current_moment = Vector{Channel}()
     current_moment_inds = Set{ITensors.Index{<:Any}}()
+    n_gates = length(channel_list)
     while channel_list != []
         current_moment, current_moment_inds, channel_list = single_pass_compile_into_moments!(
             channel_list, current_moment, current_moment_inds
@@ -125,7 +137,7 @@ function compile_into_moments!(
         current_moment = Vector{Channel}()
         current_moment_inds = Set{ITensors.Index{<:Any}}()
     end
-    return moments_list
+    return moments_list, n_gates
 end
 
 function single_pass_compile_into_moments!(

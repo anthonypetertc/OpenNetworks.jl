@@ -10,6 +10,7 @@ include("core/VectorizationNetworks.jl")
 include("core/Channels.jl")
 include("utilities/GraphUtils.jl")
 include("circuits/NoiseModels.jl")
+include("circuits/ProgressSettings.jl")
 include("circuits/NoisyCircuits.jl")
 include("circuits/Circuits.jl")
 
