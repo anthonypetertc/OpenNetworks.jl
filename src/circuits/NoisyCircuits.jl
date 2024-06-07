@@ -2,11 +2,13 @@ module NoisyCircuits
 export NoisyCircuit
 
 using ITensors
-using ITensorNetworks: ITensorNetworks, apply, environment, ITensorNetwork
+using ITensorNetworks: ITensorNetworks, apply, environment, ITensorNetwork, BeliefPropagationCache, norm_sqr_network, VidalITensorNetwork, siteinds, update, gauge_error, vertices
+
 using OpenSystemsTools
 using OpenNetworks: Channels, Utils, VectorizationNetworks, VDMNetworks, NoiseModels, GraphUtils
 using NamedGraphs: PartitionVertex
 using SplitApplyCombine: group
+using ProgressMeter
 
 
 VDMNetwork = VDMNetworks.VDMNetwork
@@ -28,21 +30,86 @@ struct NoisyCircuit
         return new(moments_list, noise_model)
     end
 end
-
-function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, bp_cache:: Union{ITensorNetworks.BeliefPropagationCache, Nothing} = nothing; kwargs...):: VDMNetwork
-    for moment in noisy_circuit.moments_list
+#=
+function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, bp_cache:: Union{ITensorNetworks.BeliefPropagationCache, Nothing} = nothing, regauge_frequency::Integer = 100, gauge_tol=1e-6; kwargs...):: VDMNetwork
+    count = 0
+    @showprogress dt =1 desc="Applying circuit..." for moment in noisy_circuit.moments_list
         for channel in moment
             if !(isa(bp_cache, Nothing))
                 indices = [ind for ind in inds(channel.tensor) if plev(ind) == 0]
                 sites = [Channels.find_site(ind, ρ) for ind in indices]
                 env = ITensorNetworks.environment(bp_cache, PartitionVertex.(sites))
+                @show channel
+                @show ρ.network[(24,)]
+                @show ρ.network[(25,)]
                 ρ = Channels.apply(channel, ρ; envs=env, kwargs...)
+                count += 1
+                if count % 20 == 0
+                    println("Gauge error is $(ITensorNetworks.gauge_error(ITensorNetworks.VidalITensorNetwork(ρ.network)))")
+                    cache_ref = Ref{BeliefPropagationCache}(bp_cache)
+                    ρv = ITensorNetworks.VidalITensorNetwork(ρ.network, (cache!)=cache_ref, cache_update_kwargs=(; maxiter=20, tol=1e-12, verbose=true))
+                    #println("Gauge error is $(ITensorNetworks.gauge_error(ρv))")
+                    cache_ref = Ref{BeliefPropagationCache}()
+                    ρsymm = ITensorNetwork(ρv; (cache!)=cache_ref)
+                    bp_cache = cache_ref[]
+                    println(siteinds(ρ.network) == siteinds(ρsymm))
+                    ρ = VDMNetwork(ρsymm, ρ.unvectorizednetwork)
+                    println("Got to the end of the first 20 gates.")
+                end
             else
                 ρ = Channels.apply(channel, ρ; kwargs...)
             end
         end
     end
     return ρ
+end
+=#
+
+function ITensors.apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...):: VDMNetwork
+    for moment in noisy_circuit.moments_list
+        for channel in moment
+            ρ = Channels.apply(channel, ρ; apply_kwargs...)
+        end
+    end
+    return ρ
+end
+
+function run_circuit(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, regauge_frequency::Integer = 50; cache_update_kwargs, apply_kwargs):: VDMNetwork
+    norm_sqr = norm_sqr_network(ρ.network)
+    #Simple Belief Propagation Grouping
+    bp_cache = BeliefPropagationCache(norm_sqr, group(v -> v[1], vertices(norm_sqr)))
+    bp_cache = update(bp_cache; maxiter=20)
+    evolved_ψ = VidalITensorNetwork(ρ.network)
+
+    @showprogress dt = 1 desc="Applying circuit..." for (i, moment) in enumerate(noisy_circuit.moments_list)
+        for (j, gate) in enumerate(moment)
+            #println("Applying gate $j from moment $i")
+            indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
+            channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
+            #env = ITensorNetworks.environment(bp_cache, PartitionVertex.(channel_sites))
+            if length(channel_sites) == 1
+                #println("Applying single qubit gate")
+                evolved_ψ[channel_sites[1]] = ITensors.apply(gate, evolved_ψ[channel_sites[1]])
+            elseif length(channel_sites) == 2
+                #println("Applying a two qubit gate.")
+                evolved_ψ = ITensorNetworks.apply(gate.tensor, evolved_ψ; apply_kwargs...)
+            else
+                throw("Invalid gate: Only two qubit and one qubit gates are supported.")
+            end
+            ge = ITensorNetworks.gauge_error(evolved_ψ)
+            #println("Gauge error is $ge")
+            if ge > 1e-6 && i % regauge_frequency == 0
+                cache_ref = Ref{BeliefPropagationCache}(bp_cache)
+                ψ_symm = ITensorNetwork(evolved_ψ, (cache!)=cache_ref)
+                evolved_ψ = VidalITensorNetwork(ψ_symm, (cache!)=cache_ref, cache_update_kwargs = (; cache_update_kwargs...))
+            end
+        end
+    end
+
+    cache_ref = Ref{BeliefPropagationCache}(bp_cache)
+    global ψ_symm = ITensorNetwork(evolved_ψ, (cache!)=cache_ref)
+    evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizednetwork)
+    return evolved_ρ
 end
 
 
@@ -55,20 +122,27 @@ function compile_into_moments!(channel_list::Vector{Channel}, siteinds::ITensorN
     current_moment = Vector{Channel}()
     current_moment_inds = Set{ITensors.Index{<:Any}}()
     while channel_list != []
-        current_channel = pop!(channel_list)
-        current_inds = Set([ind for ind in inds(current_channel.tensor) if plev(ind) == 0])
+        current_moment, current_moment_inds, channel_list = single_pass_compile_into_moments!(channel_list, current_moment, current_moment_inds)
+        pushfirst!(moments_list, current_moment)
+        current_moment = Vector{Channel}()
+        current_moment_inds = Set{ITensors.Index{<:Any}}()
+    end
+    return moments_list
+end
+
+function single_pass_compile_into_moments!(channel_list:: Vector{Channel}, current_moment:: Vector{Channel}, current_moment_inds:: Set{ITensors.Index{<:Any}}):: Tuple{Vector{Channel}, Set{ITensors.Index{<:Any}}, Vector{Channel}}
+    if channel_list == [] throw("Empty channel list.") end
+    for (i, channel) in enumerate(reverse(channel_list))
+        current_inds = Set([ind for ind in inds(channel.tensor) if plev(ind) == 0])
         if current_inds ∩ current_moment_inds == Set()
-            pushfirst!(current_moment, current_channel)
+            pushfirst!(current_moment, channel)
             current_moment_inds = current_moment_inds ∪ current_inds
+            deleteat!(channel_list, findlast(==(channel), channel_list))
         else
-            push!(channel_list, current_channel)
-            pushfirst!(moments_list, current_moment)
-            current_moment = Vector{Channel}()
-            current_moment_inds = Set{ITensors.Index{<:Any}}()
+            current_moment_inds = current_moment_inds ∪ current_inds
         end
     end
-    pushfirst!(moments_list, current_moment)
-    return moments_list
+    return current_moment, current_moment_inds, channel_list
 end
     
 compile_into_moments(channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork) = compile_into_moments!(deepcopy(channel_list), siteinds)
@@ -201,4 +275,4 @@ function prepare_params(params:: Vector{<:Any}, name::String):: Dict
     return Dict(zip(keywords, params))
 end
 
-end # module
+end; # module

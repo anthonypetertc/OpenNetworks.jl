@@ -1,5 +1,5 @@
 using Test
-using OpenNetworks: VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels
+using OpenNetworks: VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels, Circuits
 using ITensorNetworks
 using JSON
 
@@ -23,3 +23,17 @@ vsites = ITensorNetworks.siteinds("QubitVec", g)
     @test ITensorNetworks.inner(evolved_ρ.network, ρ.network) ≈ 1.0
 end;
 
+@testset "Test evolution noiseless evolution" begin
+    circuit = Circuits.prepare_noiseless_circuit(qc, sites)
+    apply_kwargs = Dict{Symbol, Real}(
+        :maxdim => 50,
+        :cutoff => 1e-16
+    )
+    cache_update_kwargs = Dict{Symbol, Any}(
+        :maxiter => 16,
+        :tol => 1e-6,
+        :verbose => true
+    )
+    evolved_ψ = Circuits.run_compiled_circuit(ψ, circuit; cache_update_kwargs, apply_kwargs)
+    @test abs(ITensorNetworks.inner(ψ, evolved_ψ)) ≈ 1.0
+end;

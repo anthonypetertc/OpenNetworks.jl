@@ -11,6 +11,7 @@ include("core/Channels.jl")
 include("utilities/GraphUtils.jl")
 include("circuits/NoiseModels.jl")
 include("circuits/NoisyCircuits.jl")
+include("circuits/Circuits.jl")
 
 
 end

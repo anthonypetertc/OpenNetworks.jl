@@ -11,8 +11,6 @@ vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 vectorize_density_matrix = Vectorization.vectorize_density_matrix
 vectorize_density_matrix! = Vectorization.vectorize_density_matrix!
-vectorizedexpect = Vectorization.vectorizedexpect
-leftrightapply = Vectorization.leftrightapply
 basespace = Vectorization.basespace
 VDMNetwork = VDMNetworks.VDMNetwork
 
@@ -67,6 +65,15 @@ function find_site(ind::ITensors.Index)
 end
 
 function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
+    #= Purpose: Finds the site of an index.=#
+    for key in keys(siteinds(ψ).data_graph.vertex_data)
+        if ind in siteinds(ψ)[key]
+            return key
+        end
+    end
+end
+
+function find_site(ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork)::Tuple
     #= Purpose: Finds the site of an index.=#
     for key in keys(siteinds(ψ).data_graph.vertex_data)
         if ind in siteinds(ψ)[key]
@@ -303,26 +310,6 @@ function compose(post:: Channel, pre::Channel)::Channel
     end
     new_tensor = tens_post * tens_pre
     return Channel(post.name * "∘" * pre.name, new_tensor)
-    #=
-    if lpost == lpre
-        tens2 = prime(post.tensor)
-        new_tensor = tens2 * pre.tensor
-        swapprime!(new_tensor, 1, 2)
-        return Channel(post.name * "∘" * pre.name , new_tensor)
-    elseif lpost > lpre
-        tens2 = prime(post.tensor)
-        new_tensor = tens2 * pre.tensor
-        setprime!(new_tensor, 0; plev=1)
-        swapprime!(new_tensor, 1, 2)
-        return Channel(post.name * "∘" * pre.name , new_tensor)
-    elseif lpost < lpre
-        tens2 = prime(post.tensor)
-        new_tensor = tens2 * pre.tensor
-        setprime!(new_tensor, 1; plev=2)
-        return Channel(post.name * "∘" * pre.name , new_tensor)
-    else
-        throw("Compose not implemented for Channels sizes: lpost:$lpost lpre: $lpre")
-    end
-    =#
 end
-end;
+
+end; # module

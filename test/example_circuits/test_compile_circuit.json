@@ -1,0 +1,344 @@
+[
+  {
+    "Name": "Ry",
+    "Qubits": [
+      0
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      1
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      2
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      3
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      4
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      5
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      6
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      7
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Ry",
+    "Qubits": [
+      8
+    ],
+    "Params": [
+      0.0
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      0,
+      3
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      1,
+      4
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      2,
+      5
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      3,
+      6
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      4,
+      7
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      5,
+      8
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      6,
+      0
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      7,
+      1
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      8,
+      2
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      0,
+      1
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      1,
+      2
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      2,
+      0
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      3,
+      4
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      4,
+      5
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      5,
+      3
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      6,
+      7
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      7,
+      8
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rzz",
+    "Qubits": [
+      8,
+      6
+    ],
+    "Params": [
+      -0.5
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      0
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      1
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      2
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      3
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      4
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      5
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      6
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      7
+    ],
+    "Params": [
+      -1.0
+    ]
+  },
+  {
+    "Name": "Rx",
+    "Qubits": [
+      8
+    ],
+    "Params": [
+      -1.0
+    ]
+  }
+]
