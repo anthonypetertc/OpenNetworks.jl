@@ -17,7 +17,7 @@ sites = ITensorNetworks.siteinds("Qubit", G)
 vsites = ITensorNetworks.siteinds("QubitVec", G)
 #TODO: I should re-write some of my functions so that they don't require a reference state, only the site inds.
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "Prepare Parameters" begin
     @test NoisyCircuits.prepare_params([π / 2], "U") == Dict(:θ => π / 2)
@@ -89,7 +89,7 @@ bell_sites = ITensorNetworks.siteinds("Qubit", bell_g)
 bell_vsites = ITensorNetworks.siteinds("QubitVec", bell_g)
 bell_ψ = ITensorNetwork(v -> "0", bell_sites);
 bell_ρ = VectorizationNetworks.vectorize_density_matrix(
-    Utils.outer(bell_ψ, bell_ψ), bell_ψ, bell_vsites
+    Utils.outer(bell_ψ, bell_ψ), bell_sites, bell_vsites
 )
 
 @testset "Add noise to Bell pair." begin
@@ -129,12 +129,12 @@ end;
 ring_circuit = [
     Utils.typenarrow!(elm) for elm in JSON.parsefile("example_circuits/circ.json")
 ]
-ring_g = GraphUtils.extract_adjacency_graph(circ, 12)
+ring_g = GraphUtils.extract_adjacency_graph(ring_circuit, 12)
 ring_sites = ITensorNetworks.siteinds("Qubit", ring_g)
 ring_vsites = ITensorNetworks.siteinds("QubitVec", ring_g)
 ring_ψ = ITensorNetwork(v -> "0", ring_sites);
 ring_ρ = VectorizationNetworks.vectorize_density_matrix(
-    Utils.outer(ring_ψ, ring_ψ), ring_ψ, ring_vsites
+    Utils.outer(ring_ψ, ring_ψ), ring_sites, ring_vsites
 )
 
 @testset "Tests on ring circuit" begin
@@ -205,7 +205,7 @@ end;
     vs = ITensorNetworks.siteinds("QubitVec", g)
 
     ψ = ITensorNetwork(v -> "0", s)
-    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vs)
+    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), s, vs)
 
     p = 0.05
     depol_channel = Channels.depolarizing_channel(p, [s[(0,)][1], s[(1,)][1]], ρ)

@@ -12,7 +12,7 @@ g = GraphUtils.extract_adjacency_graph(qc, N)
 sites = ITensorNetworks.siteinds("Qubit", g)
 vsites = ITensorNetworks.siteinds("QubitVec", g)
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "Test circuit evolution" begin
     p = 0.01

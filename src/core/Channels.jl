@@ -3,8 +3,9 @@ export Channel, depolarizing_channel, apply, opdouble, find_site
 
 using ITensors
 import OpenSystemsTools: Vectorization
-using ITensorNetworks: AbstractITensorNetwork, ITensorNetwork, ITensorNetworks
+using ITensorNetworks: AbstractITensorNetwork, ITensorNetwork, ITensorNetworks, IndsNetwork
 using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
+using NamedGraphs: vertices
 
 vectorizer = Vectorization.vectorizer
 vectorizer_input = Vectorization.vectorizer_input
@@ -61,22 +62,23 @@ function find_site(ind::ITensors.Index)
     return site[1]
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
+function find_site(ind::ITensors.Index, sites::IndsNetwork)
     #= Purpose: Finds the site of an index.=#
-    for key in keys(siteinds(ψ).data_graph.vertex_data)
-        if ind in siteinds(ψ)[key]
-            return key
+    for vertex in vertices(sites)
+        if ind in sites[vertex]
+            return vertex
         end
     end
 end
 
+function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
+    #= Purpose: Finds the site of an index.=#
+    return find_site(ind, siteinds(ψ))
+end
+
 function find_site(ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork)::Tuple
     #= Purpose: Finds the site of an index.=#
-    for key in keys(siteinds(ψ).data_graph.vertex_data)
-        if ind in siteinds(ψ)[key]
-            return key
-        end
-    end
+    return find_site(ind, siteinds(ψ))
 end
 
 function find_site(ind::ITensors.Index, ρ::VDMNetwork)::Tuple
@@ -119,25 +121,23 @@ function opdouble(o::ITensor, rho::MPS)::ITensor
     return o
 end
 
-function opdouble(o::ITensor, rho::VDMNetwork)::ITensor
+function opdouble(o::ITensor, ρ::VDMNetwork)::ITensor
     #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
     Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            rho (ITensorNetwork) - Density Matrix of the system.
+            ρ (ITensorNetwork) - Density Matrix of the system.
     Returns: ITensor - Operator acting on the doubled Hilbert space. =#
-    ψ = rho.unvectorizednetwork
-    rho = rho.network
+    ψ = ITensorNetwork(v -> "0", ρ.unvectorizedinds)
+    ρ = ρ.network
 
     inds = [ind for ind in ITensors.inds(o) if ITensors.plev(ind) == 0]
-    vs = siteinds(rho)
+    vs = siteinds(ρ)
     o_dag = ITensors.addtags(dag(o), "dag")
     o *= o_dag
     site_list = Vector{Tuple}()
     for ind in inds
         site = find_site(ind, ψ)
         push!(site_list, site)
-        vinds = [
-            vind for vind in ITensors.inds(rho[site]) if ITensors.hastags(vind, "Site")
-        ]
+        vinds = [vind for vind in ITensors.inds(ρ[site]) if ITensors.hastags(vind, "Site")]
         @assert length(vinds) == 1 "Tensors of a vectorized density matrix should have exactly one physical leg."
         vind = vinds[1]
         spacename = basespace(vind)
@@ -323,13 +323,13 @@ end
 function apply(channel::Channel, ρ::VDMNetwork; kwargs...)::VDMNetwork
     channel_tensor = channel.tensor
     return VDMNetwork(
-        ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizednetwork
+        ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizedinds
     )
 end
 
-function apply(o::ITensors.ITensor, ρ::VDMNetwork)::VDMNetwork
+function apply(o::ITensors.ITensor, ρ::VDMNetwork; kwargs...)::VDMNetwork
     o2 = opdouble(o, ρ)
-    return VDMNetwork(ITensorNetworks.apply(o2, ρ.network), ρ.unvectorizednetwork)
+    return VDMNetwork(ITensorNetworks.apply(o2, ρ.network; kwargs...), ρ.unvectorizedinds)
 end
 
 function compose(post::Channel, pre::Channel)::Channel

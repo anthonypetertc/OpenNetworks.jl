@@ -4,9 +4,7 @@ export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 using ITensors
 using ITensorNetworks
 using OpenSystemsTools
-using OpenNetworks: Channels, Utils, VectorizationNetworks, VDMNetworks
-
-VDMNetwork = VDMNetworks.VDMNetwork
+using OpenNetworks: Channels, Utils, VectorizationNetworks
 
 struct NoiseInstruction
     name_of_instruction::String

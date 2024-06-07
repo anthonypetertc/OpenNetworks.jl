@@ -103,7 +103,7 @@ function run_circuit(
 
     cache_ref = Ref{BeliefPropagationCache}(bp_cache)
     global ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
-    evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizednetwork)
+    evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizedinds)
     return evolved_ρ
 end
 
@@ -239,7 +239,7 @@ function add_noise_to_circuit(
     vsites = noise_model.vectorizedsiteinds
     #I should re-write some of my functions so that they don't require a reference state, only the site inds.
     ψ = ITensorNetwork(v -> "0", sites)
-    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
     channel_list = Vector{Channel}()
     for gate in qc
         if !haskey(gate, "Qubits") || !haskey(gate, "Name") || !haskey(gate, "Params")
