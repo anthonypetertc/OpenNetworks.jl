@@ -1,14 +1,19 @@
 using Test
 using OpenNetworks:
-    VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels, Circuits
+    VectorizationNetworks,
+    Utils,
+    Channels,
+    GraphUtils,
+    NoisyCircuits,
+    NoiseModels,
+    Circuits,
+    CustomParsing
 using ITensorNetworks
-using JSON
 
 N = 12
-qc = JSON.parsefile("example_circuits/circ_inverse.json")
-qc = [Utils.typenarrow!(gate) for gate in qc]
+qc = CustomParsing.parse_circuit("example_circuits/circ_inverse.json")
 
-g = GraphUtils.extract_adjacency_graph(qc, N)
+g = GraphUtils.extract_adjacency_graph(qc)
 sites = ITensorNetworks.siteinds("Qubit", g)
 vsites = ITensorNetworks.siteinds("QubitVec", g)
 ψ = ITensorNetwork(v -> "0", sites);

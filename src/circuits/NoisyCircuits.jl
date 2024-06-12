@@ -1,7 +1,7 @@
 module NoisyCircuits
 export NoisyCircuit
 
-using ITensors
+using ITensors: ITensors, inds
 using ITensorNetworks:
     ITensorNetworks,
     apply,
@@ -234,22 +234,17 @@ function squeeze_single_qubit_gates(
     return new_channel_list, new_index_list
 end
 
-#TODO: Would also be good to write another function that adds noise to a circuit represented as a list of channels or ITensors instead as
-#the list of dicts that I am using at the moment.
-
 function add_noise_to_circuit(
-    qc::Vector{Dict{String,Any}}, noise_model::NoiseModels.NoiseModel
+    qc::Vector{Dict{String,Any}}, noise_model::NoiseModel
 )::Vector{Channel}
-    n_qubits = length(keys(noise_model.siteinds.data_graph.vertex_data))
     if (
-        GraphUtils.extract_adjacency_graph(qc, n_qubits) !=
+        GraphUtils.extract_adjacency_graph(qc) !=
         noise_model.siteinds.data_graph.underlying_graph
     )
         throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
     end
     sites = noise_model.siteinds
     vsites = noise_model.vectorizedsiteinds
-    #I should re-write some of my functions so that they don't require a reference state, only the site inds.
     ψ = ITensorNetwork(v -> "0", sites)
     ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
     channel_list = Vector{Channel}()
