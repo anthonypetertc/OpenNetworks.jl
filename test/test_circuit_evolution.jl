@@ -1,18 +1,23 @@
 using Test
 using OpenNetworks:
-    VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels, Circuits
+    VectorizationNetworks,
+    Utils,
+    Channels,
+    GraphUtils,
+    NoisyCircuits,
+    NoiseModels,
+    Circuits,
+    CustomParsing
 using ITensorNetworks
-using JSON
 
 N = 12
-qc = JSON.parsefile("example_circuits/circ_inverse.json")
-qc = [Utils.typenarrow!(gate) for gate in qc]
+qc = CustomParsing.parse_circuit("example_circuits/circ_inverse.json")
 
-g = GraphUtils.extract_adjacency_graph(qc, N)
+g = GraphUtils.extract_adjacency_graph(qc)
 sites = ITensorNetworks.siteinds("Qubit", g)
 vsites = ITensorNetworks.siteinds("QubitVec", g)
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "Test circuit evolution" begin
     p = 0.01
@@ -34,6 +39,9 @@ end;
     circuit = Circuits.prepare_noiseless_circuit(qc, sites)
     apply_kwargs = Dict{Symbol,Real}(:maxdim => 50, :cutoff => 1e-16)
     cache_update_kwargs = Dict{Symbol,Any}(:maxiter => 16, :tol => 1e-6, :verbose => true)
-    evolved_ψ = Circuits.run_compiled_circuit(ψ, circuit; cache_update_kwargs, apply_kwargs)
+    progress_kwargs = Dict{Symbol,Any}(:enabled => false)
+    evolved_ψ = Circuits.run_compiled_circuit(
+        ψ, circuit; progress_kwargs, cache_update_kwargs, apply_kwargs
+    )
     @test abs(ITensorNetworks.inner(ψ, evolved_ψ)) ≈ 1.0
 end;

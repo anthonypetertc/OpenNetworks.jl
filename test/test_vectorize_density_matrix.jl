@@ -23,7 +23,7 @@ vsites = siteinds("QubitVec", g)
 #Random.seed!(1564)
 ψ = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
 ρ = Utils.outer(ψ, ψ)
-vρ = vectorize_density_matrix(ρ, ψ, vsites)
+vρ = vectorize_density_matrix(ρ, sites, vsites)
 
 X = op("X", sites[(1, 1)])
 Y = op("Y", sites[(1, 2)])

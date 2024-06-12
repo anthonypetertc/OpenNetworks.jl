@@ -143,15 +143,4 @@ function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwo
     end
 end
 
-function typenarrow!(d::Dict{<:Any,<:Any})
-    for key in keys(d)
-        if typeof(d[key]) == Dict
-            typenarrow!(d[key])
-        elseif typeof(d[key]) == Vector{Any}
-            d[key] = [v for v in d[key]]
-        end
-    end
-    return d
-end
-
 end;

@@ -2,11 +2,11 @@ using Test
 using OpenSystemsTools
 using ITensors
 using OpenNetworks: VectorizationNetworks, Utils, Channels
-using NamedGraphs: named_grid
+using NamedGraphs: named_grid, vertices
 using Random
 using LinearAlgebra
 using Graphs
-using ITensorNetworks
+using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
 
 depolarizing_channel = Channels.depolarizing_channel
 opdouble = Channels.opdouble
@@ -15,10 +15,7 @@ Channel = Channels.Channel
 find_site = Channels.find_site
 
 vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
-#opdouble = VectorizationBP.opdouble
 swapprime = Utils.swapprime
-
-#include("/home/tony/OpenNetworks.jl/src/utils/channel.jl")
 
 ITensors.op(::OpName"Id", ::SiteType"Qubit") = [
     1 0
@@ -49,8 +46,6 @@ Idt = [1 0; 0 1]
 
 T1 = op("T", sites[1])
 Tt = [1 0; 0 exp(im * π / 4)]
-
-#@assert all(opdouble(X1, vrho).tensor ≈ kron(Xt, Xt))
 
 @testset "opdouble" begin
     vX1 = opdouble(X1, vrho)
@@ -139,10 +134,10 @@ g = named_grid(g_dims)
 sites = siteinds("Qubit", g)
 vsites = siteinds("QubitVec", g)
 χ = 4
-#Random.seed!(1564)
+Random.seed!(1564)
 ψ = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
 ρ = Utils.outer(ψ, ψ)
-vρ = vectorize_density_matrix(ρ, ψ, vsites)
+vρ = vectorize_density_matrix(ρ, sites, vsites)
 
 X = op("X", sites[(1, 1)])
 Y = op("Y", sites[(1, 2)])
@@ -201,7 +196,7 @@ end;
     end
 
     v2 = VectorizationNetworks.vectorize_density_matrix(
-        outer(unvectorized, unvectorized), evolved.unvectorizednetwork, vsites
+        outer(unvectorized, unvectorized), evolved.unvectorizedinds, vsites
     )
     norm_const = sqrt(Utils.innerprod(v2, v2) * Utils.innerprod(evolved, evolved))
     @test Utils.innerprod(v2, evolved) / norm_const ≈ 1
@@ -223,7 +218,7 @@ end;
 
 @testset "Channel evolution" begin
     ρ0 = deepcopy(ρ)
-    vρ0 = vectorize_density_matrix(ρ0, ψ, vsites)
+    vρ0 = vectorize_density_matrix(ρ0, sites, vsites)
     n_ops = 3
     vertex = rand(keys(ψ.data_graph.vertex_data))
     qubit1 = sites[vertex]
@@ -253,7 +248,7 @@ end;
             ],
         )
     end
-    vρ1 = vectorize_density_matrix(ρ0, ψ, vsites)
+    vρ1 = vectorize_density_matrix(ρ0, sites, vsites)
     @test Utils.innerprod(vρ1, vρ0) /
           sqrt(Utils.innerprod(vρ1, vρ1) * Utils.innerprod(vρ0, vρ0)) ≈ 1
 end;
@@ -279,10 +274,10 @@ composed_channel = Channels.compose(CX_channel, X_channel)
 ψ01 = ITensorNetworks.apply(op("X", sites[(1, 2)]), ψ00)
 ψ10 = ITensorNetworks.apply(op("X", sites[(1, 1)]), ψ00)
 ψ11 = ITensorNetworks.apply(op("X", sites[(1, 1)]), ψ01)
-ρ00 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ00, ψ00), ψ00, vsites)
-ρ01 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ01, ψ01), ψ01, vsites)
-ρ10 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ10, ψ10), ψ10, vsites)
-ρ11 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ11, ψ11), ψ11, vsites)
+ρ00 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ00, ψ00), sites, vsites)
+ρ01 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ01, ψ01), sites, vsites)
+ρ10 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ10, ψ10), sites, vsites)
+ρ11 = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ11, ψ11), sites, vsites)
 
 @testset "Compose two qubit" begin
     @test Utils.innerprod(Channels.apply(composed_channel, ρ00), ρ11) ≈ 1

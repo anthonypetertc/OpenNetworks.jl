@@ -8,17 +8,6 @@ using LinearAlgebra
 using Graphs
 using ITensorNetworks
 
-#=
-depolarizing_channel = Channels.depolarizing_channel
-opdouble = Channels.opdouble
-apply = Channels.apply
-Channel = Channels.Channel
-find_site = Channels.find_site
-
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
-#opdouble = VectorizationBP.opdouble
-swapprime = Utils.swapprime
-=#
 apply = Channels.apply
 swapprime! = Utils.swapprime!
 swapprime = Utils.swapprime
@@ -32,7 +21,7 @@ vsites = siteinds("QubitVec", g)
 #Random.seed!(1564)
 ψ = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
 ρ = Utils.outer(ψ, ψ)
-vρ = vectorize_density_matrix(ρ, ψ, vsites)
+vρ = vectorize_density_matrix(ρ, sites, vsites)
 
 @testset "test swapprime" begin
     @testset "swapprime!" begin
@@ -66,11 +55,11 @@ end;
 
 #Prepare state in all zero state.
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
 #Apply X gate to first qubit.
 o = op("X", sites[(1, 1)])
 ϕ = ITensorNetworks.apply(o, ψ)
-σ = vectorize_density_matrix(Utils.outer(ϕ, ϕ), ϕ, vsites)
+σ = vectorize_density_matrix(Utils.outer(ϕ, ϕ), sites, vsites)
 
 g2 = named_grid((3, 3))
 ψ2 = ITensorNetwork(v -> "0", siteinds("Qubit", g2))
@@ -104,7 +93,7 @@ end;
 end;
 
 ψ = ITensorNetwork(v -> "0", sites)
-ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "trace_unitary" begin
     unvectorized = deepcopy(ψ)

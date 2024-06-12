@@ -2,22 +2,26 @@ using Test
 using OpenSystemsTools
 using ITensors
 using OpenNetworks:
-    VectorizationNetworks, Utils, Channels, GraphUtils, NoisyCircuits, NoiseModels
+    VectorizationNetworks,
+    Utils,
+    Channels,
+    GraphUtils,
+    NoisyCircuits,
+    NoiseModels,
+    CustomParsing
 using NamedGraphs: named_grid
 using Random
 using LinearAlgebra
 using Graphs
 using ITensorNetworks
-using JSON
 
 N = 12
 G = GraphUtils.named_ring_graph(N)
 
 sites = ITensorNetworks.siteinds("Qubit", G)
 vsites = ITensorNetworks.siteinds("QubitVec", G)
-#TODO: I should re-write some of my functions so that they don't require a reference state, only the site inds.
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vsites)
+ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "Prepare Parameters" begin
     @test NoisyCircuits.prepare_params([π / 2], "U") == Dict(:θ => π / 2)
@@ -25,11 +29,13 @@ vsites = ITensorNetworks.siteinds("QubitVec", G)
         Dict(:θ => π / 2, :ϕ => π / 4)
     @test NoisyCircuits.prepare_params([π / 2, π / 4, π / 8], "U") ==
         Dict(:θ => π / 2, :ϕ => π / 4, :λ => π / 8)
+    @test NoisyCircuits.prepare_params([π / 4], "Rzz") == Dict(:ϕ => π / 8)
+    @test_throws "Incorrect number of params for gate Rzz." NoisyCircuits.prepare_params(
+        [π / 2, π / 4], "Rzz"
+    )
     @test_throws "Only 3 parameters or less." NoisyCircuits.prepare_params(
         [π / 2, π / 4, π / 8, π / 16], "U"
     )
-    #TODO: I also need to add another test to make sure that it prepares params correctly for gates with different ordering
-    # of parameters.
 end;
 
 @testset "Prepare noise for gate" begin
@@ -73,7 +79,6 @@ end;
         tensor = NoisyCircuits.make_gate("Rx", [1], Dict(:θ => π / 2), sites)
         @test tensor == op("Rx", sites[(1,)]; θ=π / 2)
     end
-
     @testset "Five Qubit Gate" begin
         @test_throws "Only 3 qubit gates or less." tensor = NoisyCircuits.make_gate(
             "CCCCX", [1, 2, 3, 4, 5], Dict(), sites
@@ -81,15 +86,13 @@ end;
     end
 end;
 
-bell_pair_circuit = [
-    Utils.typenarrow!(elm) for elm in JSON.parsefile("example_circuits/bell_pair.json")
-]
-bell_g = GraphUtils.extract_adjacency_graph(bell_pair_circuit, 2)
+bell_pair_circuit = CustomParsing.parse_circuit("example_circuits/bell_pair.json")
+bell_g = GraphUtils.extract_adjacency_graph(bell_pair_circuit)
 bell_sites = ITensorNetworks.siteinds("Qubit", bell_g)
 bell_vsites = ITensorNetworks.siteinds("QubitVec", bell_g)
 bell_ψ = ITensorNetwork(v -> "0", bell_sites);
 bell_ρ = VectorizationNetworks.vectorize_density_matrix(
-    Utils.outer(bell_ψ, bell_ψ), bell_ψ, bell_vsites
+    Utils.outer(bell_ψ, bell_ψ), bell_sites, bell_vsites
 )
 
 @testset "Add noise to Bell pair." begin
@@ -126,15 +129,13 @@ bell_ρ = VectorizationNetworks.vectorize_density_matrix(
     @test Array(ITensorNetworks.contract(ρ.network).tensor) ≈ reshaped_dm
 end;
 
-ring_circuit = [
-    Utils.typenarrow!(elm) for elm in JSON.parsefile("example_circuits/circ.json")
-]
-ring_g = GraphUtils.extract_adjacency_graph(circ, 12)
+ring_circuit = CustomParsing.parse_circuit("example_circuits/circ.json")
+ring_g = GraphUtils.extract_adjacency_graph(ring_circuit)
 ring_sites = ITensorNetworks.siteinds("Qubit", ring_g)
 ring_vsites = ITensorNetworks.siteinds("QubitVec", ring_g)
 ring_ψ = ITensorNetwork(v -> "0", ring_sites);
 ring_ρ = VectorizationNetworks.vectorize_density_matrix(
-    Utils.outer(ring_ψ, ring_ψ), ring_ψ, ring_vsites
+    Utils.outer(ring_ψ, ring_ψ), ring_sites, ring_vsites
 )
 
 @testset "Tests on ring circuit" begin
@@ -156,7 +157,7 @@ ring_ρ = VectorizationNetworks.vectorize_density_matrix(
     noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites)
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circ, noise_model)
     compressed_noisy_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
-    compiled_noisy_circuit = NoisyCircuits.compile_into_moments(
+    compiled_noisy_circuit, n_gates = NoisyCircuits.compile_into_moments(
         compressed_noisy_circuit, vsites
     )
     circuit_object = NoisyCircuits.NoisyCircuit(circ, noise_model)
@@ -197,15 +198,14 @@ ring_ρ = VectorizationNetworks.vectorize_density_matrix(
 end;
 
 @testset "Compilation into moments, small circuit." begin
-    circuit = JSON.parsefile("example_circuits/test_compile_circuit.json")
-    circuit = [Utils.typenarrow!(gate) for gate in circuit]
+    circuit = CustomParsing.parse_circuit("example_circuits/test_compile_circuit.json")
 
-    g = GraphUtils.extract_adjacency_graph(circuit, 9)
+    g = GraphUtils.extract_adjacency_graph(circuit)
     s = ITensorNetworks.siteinds("Qubit", g)
     vs = ITensorNetworks.siteinds("QubitVec", g)
 
     ψ = ITensorNetwork(v -> "0", s)
-    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), ψ, vs)
+    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), s, vs)
 
     p = 0.05
     depol_channel = Channels.depolarizing_channel(p, [s[(0,)][1], s[(1,)][1]], ρ)
@@ -220,7 +220,7 @@ end;
 
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circuit, noise_model)
     compressed_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
-    moments_list1 = NoisyCircuits.compile_into_moments(
+    moments_list1, _ = NoisyCircuits.compile_into_moments(
         compressed_circuit, noise_model.vectorizedsiteinds
     )
 

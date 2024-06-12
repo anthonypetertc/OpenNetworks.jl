@@ -1,5 +1,5 @@
 module Circuits
-export prepare_noiseless_circuit, run_circuit
+export prepare_noiseless_circuit, run_compiled_circuit
 
 using ITensorNetworks:
     ITensorNetworks,
@@ -12,11 +12,11 @@ using ITensorNetworks:
     gauge_error,
     apply
 using ITensors: ITensors, ITensor, inds, plev
-using OpenNetworks: Channels, NoisyCircuits
+using OpenNetworks: Channels, NoisyCircuits, ProgressSettings
 using ProgressMeter
 using SplitApplyCombine: group
 
-run_circuit = NoisyCircuits.run_circuit
+default_progress_kwargs = ProgressSettings.default_progress_kwargs
 
 function prepare_noiseless_circuit(
     qc::Vector{Dict{String,Any}}, sites::ITensorNetworks.IndsNetwork
@@ -41,6 +41,7 @@ function run_compiled_circuit(
     ψ::ITensorNetworks.ITensorNetwork,
     circuit::Vector{ITensor},
     regauge_frequency::Integer=50;
+    progress_kwargs=default_progress_kwargs,
     cache_update_kwargs,
     apply_kwargs,
 )::ITensorNetworks.ITensorNetwork
@@ -49,7 +50,9 @@ function run_compiled_circuit(
     bp_cache = update(bp_cache; maxiter=20)
     evolved_ψ = VidalITensorNetwork(ψ)
 
-    @showprogress dt = 1 desc = "Applying circuit..." for (i, gate) in enumerate(circuit)
+    p = Progress(length(circuit); progress_kwargs...)
+
+    for (i, gate) in enumerate(circuit)
         #println("Applying gate $j from moment $i")
         indices = [ind for ind in inds(gate) if plev(ind) == 0]
         channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
@@ -72,6 +75,7 @@ function run_compiled_circuit(
                 ψ_symm; (cache!)=cache_ref, cache_update_kwargs=(; cache_update_kwargs...)
             )
         end
+        ProgressMeter.next!(p)
     end
 
     cache_ref = Ref{BeliefPropagationCache}(bp_cache)

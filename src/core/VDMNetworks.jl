@@ -4,10 +4,10 @@ using ITensorNetworks: ITensorNetwork, ITensorNetworks
 
 struct VDMNetwork
     network::ITensorNetwork
-    unvectorizednetwork::ITensorNetwork
+    unvectorizedinds::ITensorNetworks.IndsNetwork
 
-    function VDMNetwork(ρ::ITensorNetwork, unvectorizednetwork::ITensorNetwork)
-        return new(ρ, unvectorizednetwork)
+    function VDMNetwork(ρ::ITensorNetwork, unvectorizedinds::ITensorNetworks.IndsNetwork)
+        return new(ρ, unvectorizedinds)
     end
 end
 
@@ -17,9 +17,9 @@ function show(io::IO, vdm::VDMNetwork)
 end
 
 update_unvectorizednetwork!(
-    vdm::VDMNetwork, unvectorizednetwork::ITensorNetwork
-)::VDMNetwork = VDMNetwork(vdm.network, unvectorizednetwork)
+    vdm::VDMNetwork, unvectorizedinds::ITensorNetworks.IndsNetwork
+)::VDMNetwork = VDMNetwork(vdm.network, unvectorizedinds)
 update_unvectorizednetwork(
-    vdm::VDMNetwork, unvectorizednetwork::ITensorNetworks.IndsNetwork
-)::VDMNetwork = update_unvectorizednetwork!(deepcopy(vdm), unvectorizednetwork)
+    vdm::VDMNetwork, unvectorizedinds::ITensorNetworks.IndsNetwork
+)::VDMNetwork = update_unvectorizednetwork!(deepcopy(vdm), unvectorizedinds)
 end;
