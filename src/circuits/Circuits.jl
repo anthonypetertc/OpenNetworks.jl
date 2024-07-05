@@ -66,16 +66,21 @@ function run_compiled_circuit(
         else
             throw("Invalid gate: Only two qubit and one qubit gates are supported.")
         end
-        ge = gauge_error(evolved_ψ)
-        #println("Gauge error is $ge")
-        if ge > 1e-6 && i % regauge_frequency == 0
-            cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-            ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
-            evolved_ψ = VidalITensorNetwork(
-                ψ_symm; (cache!)=cache_ref, cache_update_kwargs=(; cache_update_kwargs...)
-            )
-        end
         ProgressMeter.next!(p)
+
+        if i % regauge_frequency == 0
+            ge = gauge_error(evolved_ψ)
+            println("Gauge error is $ge")
+            if ge > 1e-6
+                cache_ref = Ref{BeliefPropagationCache}(bp_cache)
+                ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
+                evolved_ψ = VidalITensorNetwork(
+                    ψ_symm;
+                    (cache!)=cache_ref,
+                    cache_update_kwargs=(; cache_update_kwargs...),
+                )
+            end
+        end
     end
 
     cache_ref = Ref{BeliefPropagationCache}(bp_cache)
