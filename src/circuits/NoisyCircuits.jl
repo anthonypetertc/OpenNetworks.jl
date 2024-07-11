@@ -68,7 +68,7 @@ end
 function run_circuit(
     ρ::VDMNetwork,
     noisy_circuit::NoisyCircuit,
-    regauge_frequency::Integer=50;
+    regauge_frequency::Integer=10;
     progress_kwargs=default_progress_kwargs,
     cache_update_kwargs,
     apply_kwargs,
@@ -99,18 +99,18 @@ function run_circuit(
             end
 
             ProgressMeter.next!(p)
-            if i % regauge_frequency == 0
-                ge = ITensorNetworks.gauge_error(evolved_ψ)
-                println("Gauge error is $ge")
-                if ge > 1e-6
-                    cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-                    ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
-                    evolved_ψ = VidalITensorNetwork(
-                        ψ_symm;
-                        (cache!)=cache_ref,
-                        cache_update_kwargs=(; cache_update_kwargs...),
-                    )
-                end
+            if (i % regauge_frequency == 0) && (j == 1)
+                #ge = ITensorNetworks.gauge_error(evolved_ψ)
+                #println("Gauge error is $ge")
+                #if ge > 1e-6
+                cache_ref = Ref{BeliefPropagationCache}(bp_cache)
+                ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
+                evolved_ψ = VidalITensorNetwork(
+                    ψ_symm;
+                    (cache!)=cache_ref,
+                    cache_update_kwargs=(; cache_update_kwargs...),
+                )
+                #end
             end
         end
     end
