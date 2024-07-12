@@ -243,8 +243,11 @@ function add_noise_to_circuit(
     if (
         GraphUtils.extract_adjacency_graph(qc) !=
         noise_model.siteinds.data_graph.underlying_graph
+    ) && (#TODO: This is a hack, I need to change it properly.
+        GraphUtils.extract_adjacency_graph2(qc) !=
+        noise_model.siteinds.data_graph.underlying_graph
     )
-        throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
+        throw("The circuit and the noise model do not have the same sites.")
     end
     sites = noise_model.siteinds
     vsites = noise_model.vectorizedsiteinds
@@ -264,14 +267,14 @@ function add_noise_to_circuit(
         count = 0
         for instruction in noise_model.noise_instructions
             if issubset(
-                Set([vsites[(i,)][1] for i in qubits]), instruction.qubits_noise_applies_to
+                Set([vsites[i][1] for i in qubits]), instruction.qubits_noise_applies_to
             ) && name in instruction.name_of_gates
                 #Need to introduce logging: println("Adding noise to gate.")
                 if count != 0
                     throw("Multiple instructions for the same gate.")
                 end
                 count += 1
-                index_ordering_of_gate = [vsites[(i,)][1] for i in qubits]
+                index_ordering_of_gate = [vsites[i][1] for i in qubits]
                 noise_channel = NoiseModels.prepare_noise_for_gate(
                     instruction, index_ordering_of_gate
                 )
@@ -286,7 +289,7 @@ end
 function make_gate(
     name::String, qubits::Vector{<:Any}, params::Dict, sites::ITensorNetworks.IndsNetwork
 )::ITensors.ITensor
-    ss = [sites[(qubit,)] for qubit in qubits]
+    ss = [sites[qubit] for qubit in qubits]
     if length(qubits) == 1
         tensor = op(name, ss[1][1]; params...)
     elseif length(qubits) == 2

@@ -285,3 +285,31 @@ composed_channel = Channels.compose(CX_channel, X_channel)
     @test Utils.innerprod(Channels.apply(composed_channel, ρ10), ρ00) ≈ 1
     @test Utils.innerprod(Channels.apply(composed_channel, ρ11), ρ01) ≈ 1
 end;
+
+@testset "Invert" begin
+    ρ0 = deepcopy(ρ)
+    vρ0 = vectorize_density_matrix(ρ0, sites, vsites)
+    n_ops = 3
+    vertex = rand(keys(ψ.data_graph.vertex_data))
+    qubit1 = sites[vertex]
+    qubit2 = sites[rand(Graphs.neighbors(ψ.data_graph.underlying_graph, vertex))]
+    qubits = [qubit1, qubit2]
+    append!(qubits, qubits')
+    kraus_channels = Vector{ITensor}()
+    kraus_matrices = Vector{Matrix}()
+    for _ in 1:n_ops
+        unscaled_kraus, _, _ = svd(rand(Complex{Float64}, (4, 4)))
+        push!(kraus_matrices, ((1 / sqrt(n_ops)) * unscaled_kraus))
+        push!(kraus_channels, (1 / sqrt(n_ops)) * ITensor(unscaled_kraus, qubits))
+    end
+    channel = Channel("random_channel", kraus_channels, vρ0)
+    inv_channel = Channels.invert_channel(channel)
+    comp1 = Channels.compose(channel, inv_channel)
+    comp2 = Channels.compose(inv_channel, channel)
+    id_channel = Channel(
+        "Id", [ITensor(reshape(Matrix{ComplexF64}(I, 4, 4), 2, 2, 2, 2), qubits...)], vρ0
+    )
+    legs = inds(id_channel.tensor)
+    @test Array(comp1.tensor, legs...) ≈ Array(id_channel.tensor, legs...)
+    @test Array(comp2.tensor, legs...) ≈ Array(id_channel.tensor, legs...)
+end;

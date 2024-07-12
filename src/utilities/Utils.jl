@@ -17,6 +17,8 @@ using OpenNetworks: VDMNetworks
 
 VDMNetwork = VDMNetworks.VDMNetwork
 
+#TODO: Other functions from ITensors/ITensorNetworks that I need to extend to VDMNetworks and Channels?
+
 function swapprime!(
     ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...
 )::AbstractITensorNetwork

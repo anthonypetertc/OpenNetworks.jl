@@ -8,4 +8,5 @@
 11. Read section "Avoid fields with abstract type." from julia docs, and think about how I can use parametrized types to improve the efficiency of my code.
 12. Change the print out of the Channel object to make it more user friendly - like the ITensor one.
 13. Make the circuit and VDMNetwork something that I can iterate over, and also think about what the print statement should be for these.
-
+14. Implement swapprime and other ITensor operations to Channel objects & Other functions from ITensors and ITensorNetworks I need to extend to VDMNetworks.
+15. Make my code compatible with either tuples or integers (or any other parameter) as the vertices of the datagraph.

@@ -71,17 +71,17 @@ function find_site(ind::ITensors.Index, sites::IndsNetwork)
     end
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
+function find_site(ind::ITensors.Index, ψ::ITensorNetwork)
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork)::Tuple
+function find_site(ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork)
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
-function find_site(ind::ITensors.Index, ρ::VDMNetwork)::Tuple
+function find_site(ind::ITensors.Index, ρ::VDMNetwork)
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, ρ.network)
 end
@@ -133,7 +133,7 @@ function opdouble(o::ITensor, ρ::VDMNetwork)::ITensor
     vs = siteinds(ρ)
     o_dag = ITensors.addtags(dag(o), "dag")
     o *= o_dag
-    site_list = Vector{Tuple}()
+    site_list = Vector{Any}()
     for ind in inds
         site = find_site(ind, ψ)
         push!(site_list, site)
@@ -344,6 +344,25 @@ function compose(post::Channel, pre::Channel)::Channel
     end
     new_tensor = tens_post * tens_pre
     return Channel(post.name * "∘" * pre.name, new_tensor)
+end
+
+function invert_channel(channel::Channel)::Channel
+    tensor = channel.tensor
+    in_inds = [ind for ind in inds(tensor) if plev(ind) == 0]
+    out_inds = [ind for ind in inds(tensor) if plev(ind) == 1]
+    input = prod(dim.(in_inds))
+    output = prod(dim.(out_inds))
+    if input != output
+        throw(ArgumentError("Input and output dimensions of the channel are not equal"))
+    end
+    array = reshape(
+        inv(reshape(Array(contract(tensor), in_inds..., out_inds...), input, output)),
+        dim.(in_inds)...,
+        dim.(out_inds)...,
+    )
+    new_tensor = ITensor(array, in_inds..., out_inds...)
+    new_name = "(" * channel.name * ")⁻¹"
+    return Channel(new_name, new_tensor)
 end
 
 end; # module
