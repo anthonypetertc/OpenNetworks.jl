@@ -1,9 +1,5 @@
-1. Re-write functions in core so that they do not require a reference state or density matrix, but only the siteinds (or underlying graph).
-2. Write unit tests for edge cases of noisy circuit compilation.
-3. Write custom JSON parser for circuits imported from qiskit.
-4. Write function for compiling noisy circuits from native ITensor instead of from qiskit import.
-5. Write tests for preparing gates with non-standard parameter behaviour (Rzz, Rxx, Ryy).
-6. Change the extract_adjancency matrix function so that it automatically infers the number of qubits.
-7. Write functions for emulation of circuits without noise.
-8. Add pre-commit hooks (see pre-commit.com)
-9. Can you suppress the progress meter in run_circuit function?
+1. Re-organize test code to make sure that I can call any individual set of tests and they will run.
+2. Understand how to use distributed to parallelize code.
+3. Set up timer to make tests run with a timer.
+4. Remove the progress bar from the circuit compilation test.
+5. Make the tests faster, especially those in Channel tests and Circuit evolution.
