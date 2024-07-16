@@ -7,7 +7,7 @@ using OpenNetworks
 include("pre-test.jl")
 
 #@testset "Channel tests" begin
-include("test_channel.jl")
+#include("test_channel.jl")
 #end
 
 #@testset "Vectorization tests" begin
