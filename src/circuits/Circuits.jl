@@ -70,7 +70,7 @@ function run_compiled_circuit(
 
         if i % regauge_frequency == 0
             ge = gauge_error(evolved_ψ)
-            println("Gauge error is $ge")
+            #println("Gauge error is $ge")
             if ge > 1e-6
                 cache_ref = Ref{BeliefPropagationCache}(bp_cache)
                 ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)

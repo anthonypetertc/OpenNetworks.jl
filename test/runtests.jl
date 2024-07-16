@@ -2,25 +2,8 @@
 using Test
 using OpenNetworks
 
-@testset "Channel tests" begin
-    include("test_channel.jl")
-end
+include("pre-test.jl")
 
-@testset "Vectorization tests" begin
-    include("test_vectorize_density_matrix.jl")
-end
+include("quick/runquicktests.jl")
 
-@testset "Utils tests" begin
-    include("test_utils.jl")
-end
-
-@testset "GraphUtils tests" begin
-    include("test_graph_utils.jl")
-end
-@testset "Circuit Compilation" begin
-    include("test_circuit_compilation.jl")
-end
-
-@testset "Circuit Evolution" begin
-    include("test_circuit_evolution.jl")
-end
+#include("full/runfulltests.jl")
