@@ -1,0 +1,418 @@
+[
+  {
+    "Name": "H",
+    "Qubits": [
+      0
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      0
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      0,
+      1
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      1
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      1,
+      2
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      2
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      2,
+      3
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      3
+    ],
+    "Params": []
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      4
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      3,
+      4
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      4
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      4,
+      5
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      5
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      5,
+      6
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      6
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      6,
+      7
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      7
+    ],
+    "Params": []
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      8
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      7,
+      8
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      8
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      8,
+      9
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      9
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      9,
+      10
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      10
+    ],
+    "Params": []
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      11
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      10,
+      11
+    ],
+    "Params": []
+  },
+  {
+    "Name": "T",
+    "Qubits": [
+      11
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      11,
+      0
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      11,
+      0
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      11
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      10,
+      11
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      10
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      9,
+      10
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      9
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      8,
+      9
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      8
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      7,
+      8
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      7
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      6,
+      7
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      6
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      5,
+      6
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      5
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      4,
+      5
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      4
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      3,
+      4
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      3
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      2,
+      3
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      2
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      1,
+      2
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      1
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      0,
+      1
+    ],
+    "Params": []
+  },
+  {
+    "Name": "Rz",
+    "Qubits": [
+      0
+    ],
+    "Params": [-0.7853981633974483]
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      0
+    ],
+    "Params": []
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      4
+    ],
+    "Params": []
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      8
+    ],
+    "Params": []
+  },
+  {
+    "Name": "H",
+    "Qubits": [
+      11
+    ],
+    "Params": []
+  }
+]

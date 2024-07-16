@@ -2,12 +2,14 @@
 using Test
 using OpenNetworks
 
+include("pre-test.jl")
+
 @testset "Channel tests" begin
     include("test_channel.jl")
 end
 
 @testset "Vectorization tests" begin
-    include("test_vectorize_density_matrix.jl")
+    include("test_vectorize.jl")
 end
 
 @testset "Utils tests" begin

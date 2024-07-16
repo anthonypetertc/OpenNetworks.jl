@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "H",
+    "Qubits": [
+      0
+    ],
+    "Params": []
+  },
+  {
+    "Name": "CX",
+    "Qubits": [
+      0,
+      1
+    ],
+    "Params": []
+  }
+]

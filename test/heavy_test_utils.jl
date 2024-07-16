@@ -91,3 +91,27 @@ end;
         ϕ1, ϕ2
     )
 end;
+
+ψ = ITensorNetwork(v -> "0", sites)
+ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
+
+@testset "trace_unitary" begin
+    unvectorized = deepcopy(ψ)
+    evolved = deepcopy(ρ)
+    for i in 1:6
+        vertex = rand(keys(unvectorized.data_graph.vertex_data))
+        qubit1 = sites[vertex]
+        qubit2 = sites[rand(
+            Graphs.neighbors(unvectorized.data_graph.underlying_graph, vertex)
+        )]
+        qubits = [qubit1, qubit2]
+        append!(qubits, qubits')
+
+        Q, _ = qr(randn(ComplexF64, 4, 4))
+        U = ITensor(Array(Q), qubits)
+        evolved = Channels.apply(U, evolved)
+        unvectorized = ITensorNetworks.apply(U, unvectorized)
+        dm = outer(unvectorized, unvectorized)
+        @test Utils.innerprod(evolved, evolved) ≈ 1.0
+    end
+end;
