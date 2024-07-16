@@ -9,21 +9,17 @@ using LinearAlgebra
 using Graphs
 
 vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
-#opdouble = Channels.opdouble
 swapprime = Utils.swapprime
 
-#=Vectorization.@build_vectorized_space("Qubit",["Id","X","Y","Z","CX",
-                                           "H","S","T","Rx","Ry","Rz"])=#
-
-g_dims = (2, 2)
-g = named_grid(g_dims)
-sites = siteinds("Qubit", g)
-vsites = siteinds("QubitVec", g)
+g_dims = square_g_dims
+g = square_g
+sites = square_sites
+vsites = square_vsites
 χ = 4
-#Random.seed!(1564)
-ψ = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
-ρ = Utils.outer(ψ, ψ)
-vρ = vectorize_density_matrix(ρ, sites, vsites)
+
+ψ = square_rand_ψ
+ρ = square_rand_ρ
+vρ = square_rand_vρ
 
 X = op("X", sites[(1, 1)])
 Y = op("Y", sites[(1, 2)])
