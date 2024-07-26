@@ -47,4 +47,11 @@ function named_ring_graph(n::Integer)
     add_edges!(G, [(n - 1,) => (0,)])
     return G
 end
+
+function named_ring_graph2(n::Integer)
+    G = NamedGraph([i for i in 0:(n - 1)])
+    add_edges!(G, [i => i + 1 for i in 0:(n - 2)])
+    add_edges!(G, [n - 1 => 0])
+    return G
+end
 end

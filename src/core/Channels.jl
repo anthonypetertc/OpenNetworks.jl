@@ -47,6 +47,16 @@ function tagstring(T::ITensors.TagSet)::String
     return res
 end
 
+function find_site(ind::ITensors.Index, sites::ITensorNetworks.IndsNetwork)
+    s = [v for v in vertices(sites) if noprime(ind) in sites[v]]
+    if length(s) > 1
+        throw("Index found in two sites. Is this a bond index? Index=$(ind), sites=$(s)")
+    elseif isempty(s)
+        throw("Index not a site index. Index=$(ind)")
+    end
+    return first(s)
+end
+
 function find_site(ind::ITensors.Index)
     #= Purpose: Given a site index for an ITensor, this function will return the site it corresponds to.=#
 
@@ -62,6 +72,7 @@ function find_site(ind::ITensors.Index)
     return site[1]
 end
 
+#=
 function find_site(ind::ITensors.Index, sites::IndsNetwork)
     #= Purpose: Finds the site of an index.=#
     for vertex in vertices(sites)
@@ -70,6 +81,7 @@ function find_site(ind::ITensors.Index, sites::IndsNetwork)
         end
     end
 end
+=#
 
 function find_site(ind::ITensors.Index, ψ::ITensorNetwork)
     #= Purpose: Finds the site of an index.=#

@@ -7,14 +7,7 @@ using LinearAlgebra
 using Graphs
 using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
 
-depolarizing_channel = Channels.depolarizing_channel
-opdouble = Channels.opdouble
-apply = Channels.apply
-Channel = Channels.Channel
-find_site = Channels.find_site
-
 vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
-swapprime = Utils.swapprime
 
 ITensors.op(::OpName"Id", ::SiteType"Qubit") = [
     1 0

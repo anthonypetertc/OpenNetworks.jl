@@ -14,5 +14,6 @@ include("circuits/NoiseModels.jl")
 include("circuits/ProgressSettings.jl")
 include("circuits/NoisyCircuits.jl")
 include("circuits/Circuits.jl")
+include("TEM/TEM_functions.jl")
 
 end
