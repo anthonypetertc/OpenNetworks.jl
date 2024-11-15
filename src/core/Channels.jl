@@ -198,7 +198,7 @@ end
 function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool
     #= Purpose: Checks if the Kraus operators are valid. Sum of Kraus operators multiplied by conjugates should be close to identity.
     Inputs: kraus_maps_true (Vector{ITensor}) - Vector of Kraus operators.
-    Returns: Bool - True if ΣKK† ≈ I, False otherwise. =#
+    Returns: Bool - True if ΣK†K ≈ I, False otherwise. =#
     kraus_maps = [deepcopy(kr) for kr in kraus_maps_true]
     sites = [ind for ind in ITensors.inds(kraus_maps[1]) if plev(ind) == 0]
     kr_sum = reduce(*, [op("0tens", site) for site in sites])
@@ -238,14 +238,14 @@ struct Channel
         kraus_maps::Vector{ITensor},
         rho::Vectorization.VectorizedDensityMatrix,
     )
-        @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣKK† ≆ I"
+        @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, rho) for kraus in kraus_maps])
         return new(name, tensor)
     end
 
     function Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork)
-        @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣKK† ≆ I"
+        @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, ρ) for kraus in kraus_maps])
         return new(name, tensor)
