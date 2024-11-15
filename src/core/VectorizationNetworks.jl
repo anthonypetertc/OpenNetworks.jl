@@ -11,10 +11,11 @@ using ITensorNetworks:
     VidalITensorNetwork,
     IndsNetwork,
     inner,
-    apply
+    apply,
+    vertices
 using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index
 import ITensors: outer
-using OpenSystemsTools: Vectorization
+using ITensorsOpenSystems: Vectorization
 using OpenNetworks: Utils, VDMNetworks
 import Base: show, repr
 
@@ -22,10 +23,22 @@ vectorizer = Vectorization.vectorizer
 vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 basespace = Vectorization.basespace
+fatsiteind = Vectorization.fatsiteind
 
 #outer = Utils.outer
 innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
+
+function fatsiteinds(sites::ITensorNetworks.IndsNetwork)
+    vsites = deepcopy(sites)
+    for v in vertices(sites)
+        if length(sites[v]) != 1
+            throw("sites must have exactly one site Index on every vertex.")
+        end
+        vsites[v] = Vectorization.fatsiteinds(sites[v])
+    end
+    return vsites
+end
 
 function vectorize_density_matrix!(
     ρ::ITensorNetwork, unvectorizedinds::IndsNetwork, vectorizedinds::IndsNetwork

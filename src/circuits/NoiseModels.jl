@@ -3,7 +3,7 @@ export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 
 using ITensors
 using ITensorNetworks
-using OpenSystemsTools
+using ITensorsOpenSystems
 using OpenNetworks: Channels, Utils, VectorizationNetworks
 
 struct NoiseInstruction

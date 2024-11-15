@@ -1,7 +1,7 @@
-using OpenSystemsTools
+using ITensorsOpenSystems
 using ITensors
 using OpenNetworks: VectorizationNetworks, Utils, Channels
-using NamedGraphs: named_grid, vertices
+using NamedGraphs: vertices, NamedGraphGenerators.named_grid
 using Random
 using LinearAlgebra
 using Graphs
@@ -12,10 +12,9 @@ opdouble = Channels.opdouble
 apply = Channels.apply
 Channel = Channels.Channel
 find_site = Channels.find_site
-
 vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 swapprime = Utils.swapprime
-
+#=
 ITensors.op(::OpName"Id", ::SiteType"Qubit") = [
     1 0
     0 1
@@ -24,11 +23,12 @@ ITensors.op(::OpName"Id", ::SiteType"Qubit") = [
 Vectorization.@build_vectorized_space(
     "Qubit", ["Id", "X", "Y", "Z", "CX", "H", "S", "T", "Rx", "Ry", "Rz"]
 )
+=#
 
 square_g_dims = (2, 2)
 square_g = named_grid(square_g_dims)
 square_sites = siteinds("Qubit", square_g)
-square_vsites = siteinds("QubitVec", square_g)
+square_vsites = VectorizationNetworks.fatsiteinds(square_sites)
 χ = 4
 Random.seed!(1564)
 square_rand_ψ = ITensorNetworks.random_tensornetwork(square_sites; link_space=χ)

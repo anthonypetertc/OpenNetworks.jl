@@ -45,6 +45,7 @@ function swapprime(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)::VDMNetwork
     return swapprime!(deepcopy(ρ), pl1, pl2; kwargs...)
 end
 
+#=
 function innerprod(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Complex
     #= Purpose: Computes the inner product of two ITensorNetworks.
     Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
@@ -52,10 +53,10 @@ function innerprod(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Comp
     Returns: Complex - Inner product of the two ITensorNetworks. =#
     @assert ψ.data_graph.underlying_graph.vertices == ϕ.data_graph.underlying_graph.vertices "The two ITensorNetworks must have the same underlying graph."
     return Array(contract(ψ ⊗ dag(ϕ)).tensor)[1]
-end
+end =#
 
 function innerprod(ρ::VDMNetwork, ϕ::VDMNetwork)::Complex
-    return innerprod(ρ.network, ϕ.network)
+    return ITensorNetworks.inner(ρ.network, ϕ.network; alg="exact")
 end
 
 function siteinds(ρ::VDMNetwork)::ITensorNetworks.IndsNetwork

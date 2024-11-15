@@ -1,8 +1,8 @@
 using Test
-using OpenSystemsTools
+using ITensorsOpenSystems
 using ITensors
 using OpenNetworks: VDMNetworks, Utils, Channels, VectorizationNetworks
-using NamedGraphs: named_grid
+using NamedGraphs: NamedGraphGenerators.named_grid
 using Random
 using LinearAlgebra
 using Graphs

@@ -15,7 +15,7 @@ using ITensorNetworks:
     gauge_error,
     vertices
 
-using OpenSystemsTools
+using ITensorsOpenSystems
 using OpenNetworks:
     Channels,
     Utils,
@@ -24,7 +24,6 @@ using OpenNetworks:
     NoiseModels,
     GraphUtils,
     ProgressSettings
-using NamedGraphs: PartitionVertex
 using SplitApplyCombine: group
 using ProgressMeter
 
@@ -85,7 +84,6 @@ function run_circuit(
             #println("Applying gate $j from moment $i")
             indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
             channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
-            #env = ITensorNetworks.environment(bp_cache, PartitionVertex.(channel_sites))
             if length(channel_sites) == 1
                 #println("Applying single qubit gate")
                 evolved_ψ[channel_sites[1]] = ITensors.apply(
