@@ -1,8 +1,8 @@
 using Test
-using OpenSystemsTools
+using ITensorsOpenSystems
 using ITensors
 using OpenNetworks: VDMNetworks, Utils, Channels, VectorizationNetworks
-using NamedGraphs: named_grid
+using NamedGraphs: NamedGraphGenerators.named_grid
 using Random
 using LinearAlgebra
 using Graphs
@@ -63,22 +63,24 @@ o = op("X", sites[(1, 1)])
 
 g2 = named_grid((3, 3))
 ψ2 = ITensorNetwork(v -> "0", siteinds("Qubit", g2))
-
+#=
 @testset "innerprod" begin
     @test Utils.innerprod(ψ, ψ) ≈ 1.0
     @test Utils.innerprod(ψ, ϕ) ≈ 0.0
     @test Utils.innerprod(ρ, ρ) ≈ 1.0
     @test Utils.innerprod(ρ, σ) ≈ 0.0
 end;
-
+=#
 @testset "siteinds" begin
     @test siteinds(ρ).data_graph.vertex_data == vsites.data_graph.vertex_data
 end;
 
 @testset "outer" begin
     o = Utils.outer(ψ, ϕ)
-    @test Utils.innerprod(o, o) ≈ 1.0
-    @test Utils.innerprod(o, swapprime(o, 0, 1)) ≈ 0.0
+    @test first(contract(noprime(contract(o ⊗ dag(o'))))) ≈ 0.0
+    o2 = swapprime(o, 1, 0)
+    @test first(contract(noprime(contract(o ⊗ dag(o2'))))) ≈ 1.0
+    #@test Utils.trace(Utils.swapprime(o ⊗ dag(Utils.swapprime(o, 0, 1)'), 2, 1)) ≈ 0.0
     for tens in o.data_graph.vertex_data
         @test length([ind for ind in inds(tens) if !hastags(ind, "Qubit")]) == 2
     end

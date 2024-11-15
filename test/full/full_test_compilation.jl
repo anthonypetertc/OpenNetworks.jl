@@ -1,5 +1,5 @@
 using Test
-using OpenSystemsTools
+using ITensorsOpenSystems
 using ITensors
 using OpenNetworks:
     VectorizationNetworks,
@@ -9,7 +9,6 @@ using OpenNetworks:
     NoisyCircuits,
     NoiseModels,
     CustomParsing
-using NamedGraphs: named_grid
 using Random
 using LinearAlgebra
 using Graphs

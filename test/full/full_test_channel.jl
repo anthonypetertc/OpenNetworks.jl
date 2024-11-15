@@ -1,8 +1,8 @@
 using Test
-using OpenSystemsTools
+using ITensorsOpenSystems
 using ITensors
 using OpenNetworks: VectorizationNetworks, Utils, Channels
-using NamedGraphs: named_grid, vertices
+using NamedGraphs: vertices
 using Random
 using LinearAlgebra
 using Graphs
@@ -22,7 +22,7 @@ psi = productMPS(sites, "0")
 rho = outer(psi', psi)
 
 vs = siteinds("QubitVec", 16)
-vrho = Vectorization.vectorize_density_matrix(rho, vs)
+vrho = Vectorization.VectorizedDensityMatrix(rho, vs)
 
 X1 = ITensor(Op("σx", 1), sites)
 Y1 = ITensor(Op("σy", 1), sites)
@@ -128,6 +128,8 @@ end;
     v2 = VectorizationNetworks.vectorize_density_matrix(
         outer(unvectorized, unvectorized), evolved.unvectorizedinds, square_vsites
     )
+    #norm_const = sqrt(ITensorNetworks.inner(v2, v2; alg="exact") * ITensorNetworks.inner(evolved, evolved; alg="exact"))
+    #@test ITensorNetworks.inner(v2, evolved; alg="exact") / norm_const ≈ 1
     norm_const = sqrt(Utils.innerprod(v2, v2) * Utils.innerprod(evolved, evolved))
     @test Utils.innerprod(v2, evolved) / norm_const ≈ 1
 end;

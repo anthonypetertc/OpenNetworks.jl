@@ -56,7 +56,6 @@ function run_compiled_circuit(
         #println("Applying gate $j from moment $i")
         indices = [ind for ind in inds(gate) if plev(ind) == 0]
         channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
-        #env = ITensorNetworks.environment(bp_cache, PartitionVertex.(channel_sites))
         if length(channel_sites) == 1
             #println("Applying single qubit gate")
             evolved_ψ[channel_sites[1]] = ITensors.apply(gate, evolved_ψ[channel_sites[1]])

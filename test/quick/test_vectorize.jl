@@ -1,9 +1,8 @@
 using Test
-using OpenSystemsTools: Vectorization
+using ITensorsOpenSystems: Vectorization
 using ITensorNetworks: ⊗, prime, dag, ITensorNetworks, siteinds, contract
 using ITensors: ITensors, op
 using OpenNetworks: VectorizationNetworks, Utils
-using NamedGraphs: named_grid
 using Random
 using LinearAlgebra
 using Graphs
