@@ -2,6 +2,7 @@ module Channels
 export Channel, depolarizing_channel, apply, opdouble, find_site
 
 using ITensors
+using ITensorMPS
 import ITensorsOpenSystems: Vectorization
 using ITensorNetworks: AbstractITensorNetwork, ITensorNetwork, ITensorNetworks, IndsNetwork
 using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
@@ -11,11 +12,10 @@ vectorizer = Vectorization.vectorizer
 vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 vectorize_density_matrix = Vectorization.VectorizedDensityMatrix
+VectorizedDensityMatrix = Vectorization.VectorizedDensityMatrix
 vectorize_density_matrix! = Vectorization.vectorize_density_matrix!
 basespace = Vectorization.basespace
 VDMNetwork = VDMNetworks.VDMNetwork
-
-#Do I need this?
 
 ITensors.op(::OpName"id", ::SiteType"Qubit") = [
     1 0
@@ -404,6 +404,14 @@ function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork)::Channel
             "Depolarizing channel for more than two qubit gates has not been implemented."
         )
     end
+end
+
+function dephasing(
+    p::Real, site::Index, ρ::Union{VDMNetwork,VectorizedDensityMatrix}
+)::Channel
+    M0 = sqrt(1 - p) * delta(site', site)
+    M1 = sqrt(p) * op("Z", site)
+    return Channel("dephasing", [M0, M1], ρ)
 end
 
 function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
