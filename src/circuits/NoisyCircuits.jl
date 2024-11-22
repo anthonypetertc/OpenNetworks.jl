@@ -1,7 +1,7 @@
 module NoisyCircuits
 export NoisyCircuit
 
-using ITensors: ITensors, inds, op, plev, ITensor
+using ITensors: ITensors, inds, op, plev, ITensor, Index
 using ITensorNetworks:
     ITensorNetworks,
     apply,
@@ -34,13 +34,15 @@ default_progress_kwargs = ProgressSettings.default_progress_kwargs
 
 struct NoisyCircuit
     moments_list::Vector{Vector{Channel}}
-    noise_model::NoiseModel
+    fatsites::Union{ITensorNetworks.IndsNetwork,Vector{<:Index}}
     n_gates::Int
 
     function NoisyCircuit(
-        moments_list::Vector{Vector{Channel}}, noise_model::NoiseModel, n_gates::Int
+        moments_list::Vector{Vector{Channel}},
+        fatsites::Union{ITensorNetworks.IndsNetwork,Vector{<:Index}},
+        n_gates::Int,
     )
-        return new(moments_list, noise_model, n_gates)
+        return new(moments_list, fatsites, n_gates)
     end
 
     function NoisyCircuit(list_of_dicts::Vector{Dict{String,Any}}, noise_model::NoiseModel)
@@ -49,7 +51,15 @@ struct NoisyCircuit
         moments_list, n_gates = compile_into_moments(
             compressed_circuit, noise_model.vectorizedsiteinds
         )
-        return new(moments_list, noise_model, n_gates)
+        return new(moments_list, noise_model.vectorizedsiteinds, n_gates)
+    end
+
+    function NoisyCircuit(
+        channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork
+    )
+        compressed_circuit = absorb_single_qubit_gates(channel_list)
+        moments_list, n_gates = compile_into_moments(compressed_circuit, fatsites)
+        return new(moments_list, fatsites, n_gates)
     end
 end
 

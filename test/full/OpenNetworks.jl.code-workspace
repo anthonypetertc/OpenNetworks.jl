@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../ITensorNetworks.jl"
+		},
+		{
+			"path": "../../../ITensorsOpenSystems.jl"
+		}
+	],
+	"settings": {}
+}

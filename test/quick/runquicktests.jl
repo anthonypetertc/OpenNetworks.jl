@@ -21,3 +21,7 @@ end
 @testset "Circuit Evolution" begin
     include("test_circuit_evolution.jl")
 end
+
+@testset "Lindblad" begin
+    include("test_lindblad.jl")
+end

@@ -186,7 +186,8 @@ ring_ρ = VectorizationNetworks.vectorize_density_matrix(
     end
 
     @testset "Noisy Circuit object" begin
-        @test circuit_object.noise_model == noise_model
+        #@test circuit_object.noise_model == noise_model
+        @test circuit_object.fatsites == noise_model.vectorizedsiteinds
         for (i, moment) in enumerate(circuit_object.moments_list)
             for (j, gate) in enumerate(moment)
                 @test gate.tensor == compiled_noisy_circuit[i][j].tensor
