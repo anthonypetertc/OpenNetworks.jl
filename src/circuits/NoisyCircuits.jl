@@ -160,8 +160,8 @@ function single_pass_compile_into_moments!(
         throw("Empty channel list.")
     end
     for (i, channel) in enumerate(reverse(channel_list))
-        current_inds = Set([ind for ind in inds(channel.tensor) if plev(ind) == 0])
-        if current_inds ∩ current_moment_inds == Set()
+        current_inds = inds(channel.tensor; plev=0)
+        if isempty(current_inds ∩ current_moment_inds)
             pushfirst!(current_moment, channel)
             current_moment_inds = current_moment_inds ∪ current_inds
             deleteat!(channel_list, findlast(==(channel), channel_list))

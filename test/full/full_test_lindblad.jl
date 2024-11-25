@@ -128,8 +128,8 @@ end
 
     sites = [first(square_vsites[v]) for v in vertices(square_vsites)]
 
-    dt = 0.001
-    steps = 10
+    dt = 0.01
+    steps = 20
     t = steps * dt
     ψ = ITensorNetwork(v -> "0", square_sites)
     ψ[(1, 1)] = ITensors.apply(op("H", square_sites[(1, 1)]), ψ[(1, 1)])
@@ -138,12 +138,26 @@ end
     )
 
     L = OpenNetworks.Lindblad.lindbladevolve(H2, A2, t, sites) # Time evolution operator for the exact lindbladian evolution.
-    trottercircuit = OpenNetworks.Lindblad.trotterizedlindblad(
+    trottercircuit = OpenNetworks.Lindblad.firstordertrotter(H, A, steps, dt, square_vsites) #Trotterized evolution.
+    trottercircuit2 = OpenNetworks.Lindblad.secondordertrotter(
         H, A, steps, dt, square_vsites
-    ) #Trotterized evolution.
+    )
 
     rho2 = ITensors.apply(L.tensor, ITensorNetworks.contract(ρ.network)) # Exact evolution.
-    rho3 = ITensorMPS.contract(OpenNetworks.NoisyCircuits.apply(ρ, trottercircuit).network) #Trotterized evolution.
+
+    gates_list1 = reduce(vcat, trottercircuit.moments_list)
+    gate = gates_list1[1].tensor
+    for g in gates_list1
+        gate = ITensors.apply(g.tensor, gate)
+    end
+    rho3 = ITensors.apply(gate, ITensorNetworks.contract(ρ.network)) # Evolution by first order Trotter circuit.
+
+    gates_list2 = reduce(vcat, trottercircuit2.moments_list)
+    gate2 = gates_list2[1].tensor
+    for g in gates_list1
+        gate2 = ITensors.apply(g.tensor, gate2)
+    end
+    rho4 = ITensors.apply(gate2, ITensorNetworks.contract(ρ.network)) #Evolution by second order Trotter circuit.
 
     overlap =
         first(ITensorNetworks.contract(dag(rho2), rho3)) / sqrt(
@@ -152,4 +166,11 @@ end
         )
     overlap = overlap.re
     @test isapprox(overlap, 1; rtol=dt) #Normalized overlap should be approximately 1.
+
+    overlap2 =
+        first(ITensorNetworks.contract(dag(rho2), rho4)) / sqrt(
+            first(ITensorNetworks.contract(dag(rho2), rho2)) *
+            first(ITensorNetworks.contract(dag(rho4), rho4)),
+        )
+    @test isapprox(overlap, 1; rtol=dt)
 end

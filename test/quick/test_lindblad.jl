@@ -97,3 +97,80 @@ end
     @test krausdephasing.tensor ≈ lindbladdephasing.tensor
     rtol = 1e-8
 end
+
+@testset "Trotterized XXZ" begin
+    h = 0.1
+    D = 0.2
+    yin = 0.3
+    yout = 0.3
+    ydp = 0.04
+
+    H = OpSum()
+    for e in edges(square_sites)
+        es = src(e)
+        ds = dst(e)
+        H += 1, "X", es, "X", ds # XX term
+        H += 1, "Y", es, "Y", ds # YY term
+        H += D, "Z", es, "Z", ds # ZZ term
+    end
+    for v in vertices(square_sites)
+        H += h, "X", v
+    end
+
+    A = fill(OpSum(), 1)
+    for v in vertices(square_sites)
+        A[1] += sqrt(ydp), "Z", v
+    end
+
+    e = Dict((1, 1) => 1, (1, 2) => 2, (2, 1) => 3, (2, 2) => 4)
+    H2 = Lindblad.localhamiltonian(H, e)
+    A2 = Lindblad.localjumps(A, e)
+
+    sites = [first(square_vsites[v]) for v in vertices(square_vsites)]
+
+    dt = 0.01
+    steps = 20
+    t = steps * dt
+    ψ = ITensorNetwork(v -> "0", square_sites)
+    ψ[(1, 1)] = ITensors.apply(op("H", square_sites[(1, 1)]), ψ[(1, 1)])
+    ρ = OpenNetworks.VectorizationNetworks.vectorize_density_matrix(
+        OpenNetworks.Utils.outer(ψ, ψ), square_sites, square_vsites
+    )
+
+    L = OpenNetworks.Lindblad.lindbladevolve(H2, A2, t, sites) # Time evolution operator for the exact lindbladian evolution.
+    trottercircuit = OpenNetworks.Lindblad.firstordertrotter(H, A, steps, dt, square_vsites) #Trotterized evolution.
+    trottercircuit2 = OpenNetworks.Lindblad.secondordertrotter(
+        H, A, steps, dt, square_vsites
+    )
+
+    rho2 = ITensors.apply(L.tensor, ITensorNetworks.contract(ρ.network)) # Exact evolution.
+
+    gates_list1 = reduce(vcat, trottercircuit.moments_list)
+    gate = gates_list1[1].tensor
+    for g in gates_list1
+        gate = ITensors.apply(g.tensor, gate)
+    end
+    rho3 = ITensors.apply(gate, ITensorNetworks.contract(ρ.network)) # Evolution by first order Trotter circuit.
+
+    gates_list2 = reduce(vcat, trottercircuit2.moments_list)
+    gate2 = gates_list2[1].tensor
+    for g in gates_list1
+        gate2 = ITensors.apply(g.tensor, gate2)
+    end
+    rho4 = ITensors.apply(gate2, ITensorNetworks.contract(ρ.network)) #Evolution by second order Trotter circuit.
+
+    overlap =
+        first(ITensorNetworks.contract(dag(rho2), rho3)) / sqrt(
+            first(ITensorNetworks.contract(dag(rho2), rho2)) *
+            first(ITensorNetworks.contract(dag(rho3), rho3)),
+        )
+    overlap = overlap.re
+    @test isapprox(overlap, 1; rtol=dt) #Normalized overlap should be approximately 1.
+
+    overlap2 =
+        first(ITensorNetworks.contract(dag(rho2), rho4)) / sqrt(
+            first(ITensorNetworks.contract(dag(rho2), rho2)) *
+            first(ITensorNetworks.contract(dag(rho4), rho4)),
+        )
+    @test isapprox(overlap, 1; rtol=dt)
+end
