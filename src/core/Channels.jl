@@ -71,17 +71,19 @@ function find_site(ind::ITensors.Index, sites::IndsNetwork)
     end
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
+function find_site(ind::ITensors.Index, ψ::ITensorNetwork{V})::V where {V}
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork)::Tuple
+function find_site(
+    ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork{V}
+)::V where {V}
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
-function find_site(ind::ITensors.Index, ρ::VDMNetwork)::Tuple
+function find_site(ind::ITensors.Index, ρ::VDMNetwork{V})::V where {V}
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, ρ.network)
 end
@@ -156,7 +158,7 @@ function opdouble(o::ITensor, rho::Vectorization.VectorizedDensityMatrix)::ITens
     return o
 end
 
-function opdouble(o::ITensor, ρ::VDMNetwork)::ITensor
+function opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor where {V}
     #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
     Inputs: o (ITensor) - Operator on underlying Hilbert Space.
             ρ (ITensorNetwork) - Density Matrix of the system.
@@ -168,7 +170,7 @@ function opdouble(o::ITensor, ρ::VDMNetwork)::ITensor
     vs = siteinds(ρ)
     o_dag = ITensors.addtags(dag(o), "dag")
     o *= o_dag
-    site_list = Vector{Tuple}()
+    site_list = Vector{V}()
     for ind in inds
         site = find_site(ind, ψ)
         push!(site_list, site)
@@ -214,7 +216,7 @@ function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool
     return Array(kr_sum, inds(kr_sum)) ≈ Array(id_ops, inds(kr_sum))
 end
 
-function _krausindscheck(kraus_maps::Vector)
+function _krausindscheck(kraus_maps::Vector)::Nothing
     #= Purpose: Checks if the Kraus operators are acting on the same indices.
     Inputs: kraus_maps (Vector) - Vector of Kraus operators.
     Returns: Nothing =#
@@ -229,7 +231,7 @@ struct Channel
     name::String
     tensor::ITensor
 
-    function Channel(name::String, tensor::ITensor)
+    function Channel(name::String, tensor::ITensor)::Channel
         return new(name, tensor)
     end
 
@@ -237,14 +239,14 @@ struct Channel
         name::String,
         kraus_maps::Vector{ITensor},
         rho::Vectorization.VectorizedDensityMatrix,
-    )
+    )::Channel
         @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, rho) for kraus in kraus_maps])
         return new(name, tensor)
     end
 
-    function Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork)
+    function Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork)::Channel
         @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, ρ) for kraus in kraus_maps])

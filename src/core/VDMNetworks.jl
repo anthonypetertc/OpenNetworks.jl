@@ -1,14 +1,11 @@
 module VDMNetworks
 export VDMNetwork, update_unvectorizednetwork!, update_unvectorizednetwork
 using ITensorNetworks: ITensorNetwork, ITensorNetworks
+using ITensors: Index
 
-struct VDMNetwork
-    network::ITensorNetwork
-    unvectorizedinds::ITensorNetworks.IndsNetwork
-
-    function VDMNetwork(ρ::ITensorNetwork, unvectorizedinds::ITensorNetworks.IndsNetwork)
-        return new(ρ, unvectorizedinds)
-    end
+struct VDMNetwork{V}
+    network::ITensorNetwork{V}
+    unvectorizedinds::ITensorNetworks.IndsNetwork{V,Index}
 end
 
 function show(io::IO, vdm::VDMNetwork)

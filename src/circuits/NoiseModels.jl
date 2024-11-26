@@ -1,7 +1,7 @@
 module NoiseModels
 export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 
-using ITensors
+using ITensors: ITensors, Index, plev, inds
 using ITensorNetworks
 using ITensorsOpenSystems
 using OpenNetworks: Channels, Utils, VectorizationNetworks
@@ -59,10 +59,9 @@ function prepare_noise_for_gate(
     return Channels.Channel(noise_instruction.channel.name, new_tensor)
 end
 
-struct NoiseModel
+struct NoiseModel{V}
     noise_instructions::Set{NoiseInstruction}
-    siteinds::ITensorNetworks.IndsNetwork
-    vectorizedsiteinds::ITensorNetworks.IndsNetwork
+    siteinds::ITensorNetworks.IndsNetwork{V,Index}
+    vectorizedsiteinds::ITensorNetworks.IndsNetwork{V,Index}
 end
-
 end

@@ -23,6 +23,7 @@ using OpenNetworks:
     VDMNetworks,
     NoiseModels,
     GraphUtils,
+    CustomParsing,
     ProgressSettings
 using SplitApplyCombine: group
 using ProgressMeter
@@ -32,35 +33,34 @@ NoiseModel = NoiseModels.NoiseModel
 Channel = Channels.Channel
 default_progress_kwargs = ProgressSettings.default_progress_kwargs
 
-struct NoisyCircuit
+struct NoisyCircuit{V}
     moments_list::Vector{Vector{Channel}}
-    fatsites::Union{ITensorNetworks.IndsNetwork,Vector{<:Index}}
+    fatsites::ITensorNetworks.IndsNetwork{V}
     n_gates::Int
+end
 
-    function NoisyCircuit(
-        moments_list::Vector{Vector{Channel}},
-        fatsites::Union{ITensorNetworks.IndsNetwork,Vector{<:Index}},
-        n_gates::Int,
+#=
+function NoisyCircuit(
+    moments_list::Vector{Vector{Channel}},
+    fatsites::ITensorNetworks.IndsNetwork,
+    n_gates::Int,
+)
+    return new(moments_list, fatsites, n_gates)
+end=#
+
+function NoisyCircuit(list_of_dicts::Vector{Dict{String,Any}}, noise_model::NoiseModel)
+    noisy_circuit = add_noise_to_circuit(list_of_dicts, noise_model)
+    compressed_circuit = absorb_single_qubit_gates(noisy_circuit)
+    moments_list, n_gates = compile_into_moments(
+        compressed_circuit, noise_model.vectorizedsiteinds
     )
-        return new(moments_list, fatsites, n_gates)
-    end
+    return NoisyCircuit(moments_list, noise_model.vectorizedsiteinds, n_gates)
+end
 
-    function NoisyCircuit(list_of_dicts::Vector{Dict{String,Any}}, noise_model::NoiseModel)
-        noisy_circuit = add_noise_to_circuit(list_of_dicts, noise_model)
-        compressed_circuit = absorb_single_qubit_gates(noisy_circuit)
-        moments_list, n_gates = compile_into_moments(
-            compressed_circuit, noise_model.vectorizedsiteinds
-        )
-        return new(moments_list, noise_model.vectorizedsiteinds, n_gates)
-    end
-
-    function NoisyCircuit(
-        channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork
-    )
-        compressed_circuit = absorb_single_qubit_gates(channel_list)
-        moments_list, n_gates = compile_into_moments(compressed_circuit, fatsites)
-        return new(moments_list, fatsites, n_gates)
-    end
+function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
+    compressed_circuit = absorb_single_qubit_gates(channel_list)
+    moments_list, n_gates = compile_into_moments(compressed_circuit, fatsites)
+    return NoisyCircuit(moments_list, fatsites, n_gates)
 end
 
 function ITensors.apply(
@@ -246,6 +246,51 @@ function squeeze_single_qubit_gates(
 end
 
 function add_noise_to_circuit(
+    qc::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel{V}
+)::Vector{Channel} where {V}
+    if (
+        GraphUtils.extract_adjacency_graph(qc) !=
+        noise_model.siteinds.data_graph.underlying_graph
+    )
+        throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
+    end
+    sites = noise_model.siteinds
+    vsites = noise_model.vectorizedsiteinds
+    ψ = ITensorNetwork(v -> "0", sites)::ITensorNetwork{V}
+    ρ = VectorizationNetworks.vectorize_density_matrix(
+        Utils.outer(ψ, ψ), sites, vsites
+    )::VDMNetwork{V}
+    channel_list = Vector{Channel}()
+    for gate in qc
+        qubits = gate.qubits
+        name = gate.name
+        params = gate.params
+        params = prepare_params(params, name)
+        tensor = make_gate(name, qubits, params, sites)
+        gate_channel = Channel(name, [tensor], ρ)::Channels.Channel
+        count = 0
+        for instruction in noise_model.noise_instructions
+            if issubset(
+                Set([vsites[i][1] for i in qubits]), instruction.qubits_noise_applies_to
+            ) && name in instruction.name_of_gates
+                if count != 0
+                    throw("Multiple instructions for the same gate.")
+                end
+                count += 1
+                index_ordering_of_gate = [vsites[i][1] for i in qubits]
+                noise_channel = NoiseModels.prepare_noise_for_gate(
+                    instruction, index_ordering_of_gate
+                )
+                gate_channel = Channels.compose(noise_channel, gate_channel)
+            end
+        end
+        push!(channel_list, gate_channel)
+    end
+    return channel_list
+end
+
+#=
+function add_noise_to_circuit(
     qc::Vector{Dict{String,Any}}, noise_model::NoiseModel
 )::Vector{Channel}
     if (
@@ -290,11 +335,15 @@ function add_noise_to_circuit(
     end
     return channel_list
 end
+=#
 
 function make_gate(
-    name::String, qubits::Vector{<:Any}, params::Dict, sites::ITensorNetworks.IndsNetwork
+    name::String,
+    qubits::Vector{Int64},
+    params::Dict{Symbol,Float64},
+    sites::ITensorNetworks.IndsNetwork,
 )::ITensors.ITensor
-    ss = [sites[(qubit,)] for qubit in qubits]
+    ss = [sites[qubit] for qubit in qubits]
     if length(qubits) == 1
         tensor = op(name, ss[1][1]; params...)
     elseif length(qubits) == 2
@@ -307,7 +356,7 @@ function make_gate(
     return tensor
 end
 
-function prepare_params(params::Vector{<:Any}, name::String)::Dict
+function prepare_params(params::Vector{Float64}, name::String)::Dict{Symbol,Float64}
     if length(params) > 3
         throw("Only 3 parameters or less.")
     end

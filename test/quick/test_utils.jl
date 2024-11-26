@@ -6,7 +6,7 @@ using NamedGraphs: NamedGraphGenerators.named_grid
 using Random
 using LinearAlgebra
 using Graphs
-using ITensorNetworks
+using ITensorNetworks: ⊗, contract
 
 apply = Channels.apply
 swapprime! = Utils.swapprime!

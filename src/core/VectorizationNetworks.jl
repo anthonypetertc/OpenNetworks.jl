@@ -13,7 +13,7 @@ using ITensorNetworks:
     inner,
     apply,
     vertices
-using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index
+using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index, QN
 import ITensors: outer
 using ITensorsOpenSystems: Vectorization
 using OpenNetworks: Utils, VDMNetworks
@@ -29,7 +29,7 @@ fatsiteind = Vectorization.fatsiteind
 innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
 
-function fatsiteinds(sites::ITensorNetworks.IndsNetwork)
+function fatsiteinds(sites::ITensorNetworks.IndsNetwork)::ITensorNetworks.IndsNetwork
     vsites = deepcopy(sites)
     for v in vertices(sites)
         if length(sites[v]) != 1
@@ -41,13 +41,17 @@ function fatsiteinds(sites::ITensorNetworks.IndsNetwork)
 end
 
 function vectorize_density_matrix!(
-    ρ::ITensorNetwork, unvectorizedinds::IndsNetwork, vectorizedinds::IndsNetwork
-)::VDMNetwork
+    ρ::ITensorNetwork{V},
+    unvectorizedinds::IndsNetwork{V,Index},
+    vectorizedinds::IndsNetwork{V,Index},
+)::VDMNetwork{V} where {V}
     for vertex in vertices(unvectorizedinds)
         @assert length(vectorizedinds[vertex]) == 1 "vectorized index at site $vertex is not unique"
         @assert length(unvectorizedinds[vertex]) == 1 "site $vertex has wrong number of indices"
-        spacename = basespace(vectorizedinds[vertex][1])
-
+        spacename = basespace(vectorizedinds[vertex][1])::String
+        vin = vectorizer_input(spacename)::Index{Vector{Pair{QN,Int64}}}
+        vout = vectorizer_output(spacename)::Index{Vector{Pair{QN,Int64}}}
+        vz = vectorizer(spacename)::ITensors.ITensor
         if !ITensors.hastags(unvectorizedinds[vertex][1], spacename)
             throw(
                 ArgmentError(
@@ -55,24 +59,23 @@ function vectorize_density_matrix!(
                 ),
             )
         end
-        ρ[vertex] *= ITensors.delta(
-            ITensors.dag(unvectorizedinds[vertex][1]),
-            ITensors.dag(vectorizer_input(spacename)),
+        ρ[vertex]::ITensors.ITensor *= ITensors.delta(
+            ITensors.dag(unvectorizedinds[vertex][1]), ITensors.dag(vin)
         )
-        ρ[vertex] *= ITensors.delta(
-            unvectorizedinds[vertex][1]', vectorizer_input(spacename)'
-        )
-        ρ[vertex] *= vectorizer(spacename)
-        ρ[vertex] *= ITensors.delta(
-            ITensors.dag(vectorizer_output(spacename)), vectorizedinds[vertex][1]
+        ρ[vertex]::ITensors.ITensor *= ITensors.delta(unvectorizedinds[vertex][1]', vin')
+        ρ[vertex]::ITensors.ITensor *= vz
+        ρ[vertex]::ITensors.ITensor *= ITensors.delta(
+            ITensors.dag(vout), vectorizedinds[vertex][1]
         )
     end
-    return VDMNetwork(ρ, unvectorizedinds)
+    return VDMNetwork{V}(ρ, unvectorizedinds)
 end
 
 function vectorize_density_matrix(
-    ρ::ITensorNetwork, unvectorizedinds::IndsNetwork, vectorizedinds::IndsNetwork
-)::VDMNetwork
+    ρ::ITensorNetwork{V},
+    unvectorizedinds::IndsNetwork{V,Index},
+    vectorizedinds::IndsNetwork{V,Index},
+)::VDMNetwork{V} where {V}
     return vectorize_density_matrix!(deepcopy(ρ), unvectorizedinds, vectorizedinds)
 end
 
