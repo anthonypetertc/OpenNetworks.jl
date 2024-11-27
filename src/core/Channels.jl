@@ -216,7 +216,7 @@ function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool
     return Array(kr_sum, inds(kr_sum)) ≈ Array(id_ops, inds(kr_sum))
 end
 
-function _krausindscheck(kraus_maps::Vector)::Nothing
+function _krausindscheck(kraus_maps::Vector{ITensor})::Nothing
     #= Purpose: Checks if the Kraus operators are acting on the same indices.
     Inputs: kraus_maps (Vector) - Vector of Kraus operators.
     Returns: Nothing =#
@@ -246,7 +246,9 @@ struct Channel
         return new(name, tensor)
     end
 
-    function Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork)::Channel
+    function Channel(
+        name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork{V}
+    )::Channel where {V}
         @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, ρ) for kraus in kraus_maps])
@@ -356,7 +358,7 @@ function depolarizing_channel(p::Real, sites::Vector, rho::MPS)::Channel
     end
 end
 
-function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork)::Channel
+function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork{<:Any})::Channel
     #= Purpose: Creates a depolarizing channel for a given density matrix.
     Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
             sites (Vector) - Vector of sites that the channel acts on.
@@ -408,9 +410,13 @@ function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork)::Channel
     end
 end
 
-function dephasing(
-    p::Real, site::Index, ρ::Union{VDMNetwork,VectorizedDensityMatrix}
-)::Channel
+function dephasing(p::Real, site::ITensors.Index, ρ::VDMNetwork{V})::Channel where {V}
+    M0 = sqrt(1 - p) * delta(site', site)
+    M1 = sqrt(p) * op("Z", site)
+    return Channel("dephasing", [M0, M1], ρ)
+end
+
+function dephasing(p::Real, site::ITensors.Index, ρ::VectorizedDensityMatrix)::Channel
     M0 = sqrt(1 - p) * delta(site', site)
     M1 = sqrt(p) * op("Z", site)
     return Channel("dephasing", [M0, M1], ρ)
@@ -421,14 +427,14 @@ function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     return ITensors.apply(channel_tensor, ρ; kwargs...)
 end
 
-function apply(channel::Channel, ρ::VDMNetwork; kwargs...)::VDMNetwork
+function apply(channel::Channel, ρ::VDMNetwork{V}; kwargs...)::VDMNetwork{V} where {V}
     channel_tensor = channel.tensor
     return VDMNetwork(
         ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizedinds
     )
 end
 
-function apply(o::ITensors.ITensor, ρ::VDMNetwork; kwargs...)::VDMNetwork
+function apply(o::ITensors.ITensor, ρ::VDMNetwork{V}; kwargs...)::VDMNetwork{V} where {V}
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network; kwargs...), ρ.unvectorizedinds)
 end

@@ -39,12 +39,12 @@ function fatsiteinds(sites::ITensorNetworks.IndsNetwork)::ITensorNetworks.IndsNe
     end
     return vsites
 end
-
+#=
 function vectorize_density_matrix!(
     ρ::ITensorNetwork{V},
     unvectorizedinds::IndsNetwork{V,Index},
     vectorizedinds::IndsNetwork{V,Index},
-)::VDMNetwork{V} where {V}
+) where {V}
     for vertex in vertices(unvectorizedinds)
         @assert length(vectorizedinds[vertex]) == 1 "vectorized index at site $vertex is not unique"
         @assert length(unvectorizedinds[vertex]) == 1 "site $vertex has wrong number of indices"
@@ -68,16 +68,16 @@ function vectorize_density_matrix!(
             ITensors.dag(vout), vectorizedinds[vertex][1]
         )
     end
-    return VDMNetwork{V}(ρ, unvectorizedinds)
-end
-
+    return ρ
+end =#
+#=
 function vectorize_density_matrix(
     ρ::ITensorNetwork{V},
     unvectorizedinds::IndsNetwork{V,Index},
     vectorizedinds::IndsNetwork{V,Index},
 )::VDMNetwork{V} where {V}
     return vectorize_density_matrix!(deepcopy(ρ), unvectorizedinds, vectorizedinds)
-end
+end =#
 
 function unvectorize_density_matrix!(ρ::VDMNetwork)::ITensorNetwork
     vectorizedinds = siteinds(ρ.network)
