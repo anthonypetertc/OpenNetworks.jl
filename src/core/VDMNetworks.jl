@@ -17,15 +17,23 @@ end
 function VDMNetwork(
     ρ::ITensorNetwork{V}, sites::IndsNetwork{V,Index}, fatsites::IndsNetwork{V,Index}
 ) where {V}
-    new_ρ = vectorize_density_matrix!(ρ, sites, fatsites)
+    new_ρ = vectorize_density_matrix(ρ, sites, fatsites)
     return VDMNetwork{V}(new_ρ, sites)
+end
+
+function vectorize_density_matrix(
+    ρ::ITensorNetwork{V},
+    unvectorizedinds::IndsNetwork{V,Index},
+    vectorizedinds::IndsNetwork{V,Index},
+)::ITensorNetwork{V} where {V}
+    return vectorize_density_matrix!(deepcopy(ρ), unvectorizedinds, vectorizedinds)
 end
 
 function vectorize_density_matrix!(
     ρ::ITensorNetwork{V},
     unvectorizedinds::IndsNetwork{V,Index},
     vectorizedinds::IndsNetwork{V,Index},
-) where {V}
+)::ITensorNetwork{V} where {V}
     for vertex in vertices(unvectorizedinds)
         @assert length(vectorizedinds[vertex]) == 1 "vectorized index at site $vertex is not unique"
         @assert length(unvectorizedinds[vertex]) == 1 "site $vertex has wrong number of indices"

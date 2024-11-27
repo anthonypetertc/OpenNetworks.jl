@@ -3,6 +3,7 @@ using ITensorsOpenSystems
 using ITensors
 using OpenNetworks:
     VectorizationNetworks,
+    VDMNetworks,
     Utils,
     Channels,
     GraphUtils,
@@ -19,7 +20,7 @@ G = GraphUtils.named_ring_graph(N)
 sites = ITensorNetworks.siteinds("Qubit", G)
 vsites = ITensorNetworks.siteinds("QubitVec", G)
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "Prepare Parameters" begin
     @test NoisyCircuits.prepare_params([π / 2], "U") == Dict(:θ => π / 2)

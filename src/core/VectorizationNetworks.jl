@@ -1,5 +1,4 @@
 module VectorizationNetworks
-export vectorize_density_matrix, innerprod, unvectorize_density_matrix
 
 using NamedGraphs: vertices
 using ITensorNetworks:
@@ -136,7 +135,7 @@ function idnetwork(ψ::ITensorNetwork)::ITensorNetwork
 end
 
 function vidnetwork(ψ::ITensorNetwork, vectorizedinds::IndsNetwork)::VDMNetwork
-    return vectorize_density_matrix(idnetwork(ψ), siteinds(ψ), vectorizedinds)
+    return VDMNetworks.VDMNetwork(idnetwork(ψ), siteinds(ψ), vectorizedinds)
 end
 
 function vectorizedtrace(ρ::VDMNetwork; kwargs...)::Complex
@@ -149,7 +148,7 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     ψ = ITensorNetwork(v -> "0", ρ.unvectorizedinds)
     idn = idnetwork(ψ)
     new_network = apply(op, idn)
-    new_op = vectorize_density_matrix(new_network, ρ.unvectorizedinds, siteinds(ρ))
+    new_op = VDMNetworks.VDMNetwork(new_network, ρ.unvectorizedinds, siteinds(ρ))
     return inner(ρ.network, new_op.network; kwargs...)
 end
 

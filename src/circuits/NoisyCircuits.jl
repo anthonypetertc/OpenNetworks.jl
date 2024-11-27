@@ -51,10 +51,8 @@ end=#
 function NoisyCircuit(
     parsedcircuit::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel
 )
-    noisy_circuit = add_noise_to_circuit(parsedcircuit, noise_model)
-    channel = first(noisycircuit)
-    firstind = first(inds(channel.tensor))
-    compressedcircuit = absorb_single_qubit_gates(noisy_circuit, firstind)
+    noisycircuit = add_noise_to_circuit(parsedcircuit, noise_model)
+    compressedcircuit = absorb_single_qubit_gates(noisycircuit)
     #=moments_list, n_gates = compile_into_moments(
          compressed_circuit, noise_model.vectorizedsiteinds
      )=#
@@ -63,9 +61,7 @@ function NoisyCircuit(
 end
 
 function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
-    channel = first(noisycircuit)
-    firstind = first(inds(channel.tensor))
-    compressedcircuit = absorb_single_qubit_gates(channel_list, firstind)
+    compressedcircuit = absorb_single_qubit_gates(channel_list)
     #moments_list, n_gates = compile_into_moments(compressed_circuit, fatsites)
     n_gates = length(compressedcircuit)
     return NoisyCircuit(compressedcircuit, fatsites, n_gates)
@@ -259,6 +255,7 @@ function absorb_single_qubit_gates(
     act on, and then adds the combined channel into new_channel_list. =#
 
     new_channel = deepcopy(channel)
+    indices = inds(new_channel.tensor)
     locations_to_remove = Vector{Int64}()
     for (i, ind) in enumerate(index_list)
         if ind in indices
@@ -302,6 +299,12 @@ function reverse_absorb_single_qubit_gates(
     return new_channel_list
 end
 
+function absorb_single_qubit_gates(channel_list::Vector{Channels.Channel})
+    firstchannel = first(channel_list)
+    index = first(inds(firstchannel.tensor))
+    return absorb_single_qubit_gates(channel_list, index)
+end
+
 function absorb_single_qubit_gates(
     channel_list::Vector{Channels.Channel}, index::ITensors.Index{V}
 )::Vector{Channels.Channel} where {V}
@@ -317,7 +320,7 @@ function absorb_single_qubit_gates(
             prepend!(index_list, sites)
         else
             #If a multi-site channel, absorb as many single qubit channels into it as possible.
-            new_channel_list = absorb_single_qubits(
+            new_channel_list = absorb_single_qubit_gates(
                 channel, index_list, single_qubit_list, new_channel_list
             )
         end
@@ -330,7 +333,7 @@ function absorb_single_qubit_gates(
     # Now reverse-absorb these into the list of new channels,
     # to get the final list of channels.
     new_channel_list = reverse_absorb_single_qubit_gates(
-        new_channel_list, new_index_list, squeeze_single_qubit_gates
+        new_channel_list, new_index_list, squeezed_single_qubits
     )
     return new_channel_list
 end

@@ -1,6 +1,6 @@
 using ITensorsOpenSystems
 using ITensors
-using OpenNetworks: VectorizationNetworks, Utils, Channels
+using OpenNetworks: VectorizationNetworks, Utils, Channels, VDMNetworks
 using NamedGraphs: vertices, NamedGraphGenerators.named_grid
 using Random
 using LinearAlgebra
@@ -12,7 +12,6 @@ opdouble = Channels.opdouble
 apply = Channels.apply
 Channel = Channels.Channel
 find_site = Channels.find_site
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 swapprime = Utils.swapprime
 #=
 ITensors.op(::OpName"Id", ::SiteType"Qubit") = [
@@ -33,4 +32,4 @@ square_vsites = VectorizationNetworks.fatsiteinds(square_sites)
 Random.seed!(1564)
 square_rand_ψ = ITensorNetworks.random_tensornetwork(square_sites; link_space=χ)
 square_rand_ρ = Utils.outer(square_rand_ψ, square_rand_ψ)
-square_rand_vρ = vectorize_density_matrix(square_rand_ρ, square_sites, square_vsites)
+square_rand_vρ = VDMNetworks.VDMNetwork(square_rand_ρ, square_sites, square_vsites)

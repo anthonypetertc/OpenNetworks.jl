@@ -1,12 +1,12 @@
 
-#=@testset "Channel tests" begin
+@testset "Channel tests" begin
     include("test_channel.jl")
 end
 
 @testset "Vectorization tests" begin
     include("test_vectorize.jl")
 end
-=#
+
 @testset "Utils tests" begin
     include("test_utils.jl")
 end

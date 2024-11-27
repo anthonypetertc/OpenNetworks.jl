@@ -7,7 +7,6 @@ using Random
 using LinearAlgebra
 using Graphs
 
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 swapprime = Utils.swapprime
 
 g_dims = square_g_dims
