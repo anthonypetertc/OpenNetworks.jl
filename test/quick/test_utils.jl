@@ -6,12 +6,12 @@ using NamedGraphs: NamedGraphGenerators.named_grid
 using Random
 using LinearAlgebra
 using Graphs
-using ITensorNetworks
+using ITensorNetworks: ⊗, contract
 
 apply = Channels.apply
 swapprime! = Utils.swapprime!
 swapprime = Utils.swapprime
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
+VDMNetwork = VDMNetworks.VDMNetwork
 
 g_dims = square_g_dims
 g = square_g
@@ -55,11 +55,11 @@ end;
 
 #Prepare state in all zero state.
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
 #Apply X gate to first qubit.
 o = op("X", sites[(1, 1)])
 ϕ = ITensorNetworks.apply(o, ψ)
-σ = vectorize_density_matrix(Utils.outer(ϕ, ϕ), sites, vsites)
+σ = VDMNetwork(Utils.outer(ϕ, ϕ), sites, vsites)
 
 g2 = named_grid((3, 3))
 ψ2 = ITensorNetwork(v -> "0", siteinds("Qubit", g2))

@@ -13,6 +13,8 @@ named_grid = NamedGraphs.NamedGraphGenerators.named_grid
 function lindbladevolve(
     H::Sum, A::Vector{<:Sum}, Δt::Float64, fatsites::Vector{<:Index}, name::String="L"
 )
+    #= Exact Lindblad evolution, from Hamiltonian and Jump operators presented as
+    OpSum's =#
     if length(fatsites) > 8
         throw("System is too large! Try Trotterizing the evolution operator.")
     end
@@ -31,25 +33,20 @@ function lindbladevolve(
     end
     return Channel(name, exp(Δt * L))
 end
-#=
-function lindbladevolve(
-    H::Sum, A::Vector{<:Sum}, Δt::Float64, fatsites::Vector{<:Index}, name::String="L"
-)
-
-    LH = -im * Vectorization.commutator(H, fatsites)
-    LD = Vectorization.dissipator(A, fatsites)
-    L = ITensors.contract(LH + LD)
-    return Channel(name, exp(Δt * L))
-end =#
 
 function lindbladevolvecache!(
     H::Sum,
     A::Vector{<:Sum},
     Δt::Float64,
-    sites::Vector{<:Index},
-    cache::Dict,
+    sites::Vector{ITensors.Index{V}},
+    cache::Dict{Vector{ITensors.Index{V}},Channels.Channel},
     name::String="L",
-)
+)::Channels.Channel where {V}
+    #= Checks cache to see if there is already a channel on those sites stored in cache, and if so uses it.
+        Otherwise, it generates a channel by Lindblad evolution, and sores it in cache.
+
+        Important note: this function should only be used in situations where there is only ever one channel that
+        will act on the same individual qubits. =#
     if sites in keys(cache)
         return cache[sites]
     else
@@ -59,7 +56,7 @@ function lindbladevolvecache!(
     end
 end
 
-function convertprodop(prodop::Prod{Op}, e::Dict{<:Any,Int64})
+function convertprodop(prodop::Prod{Op}, e::Dict{V,Int64}) where {V}
     new_gs = Vector{Op}()
     for g in prodop
         new_sites = Vector{Int64}()
@@ -71,7 +68,9 @@ function convertprodop(prodop::Prod{Op}, e::Dict{<:Any,Int64})
     return reduce(*, new_gs)
 end
 
-function localhamiltonian(H::Sum, e::Dict{<:Any,Int64}, size::Union{Int64,Nothing}=nothing)
+function localhamiltonian(
+    H::Sum, e::Dict{V,Int64}, size::Union{Int64,Nothing}=nothing
+) where {V}
     locH = OpSum()
     for h in H
         acts_on = Set()
@@ -92,8 +91,8 @@ function localhamiltonian(H::Sum, e::Dict{<:Any,Int64}, size::Union{Int64,Nothin
 end
 
 function localjumps(
-    A::Vector{<:Sum}, e::Dict{<:Any,Int64}, size::Union{Int64,Nothing}=nothing
-)
+    A::Vector{<:Sum}, e::Dict{V,Int64}, size::Union{Int64,Nothing}=nothing
+) where {V}
     locA = fill(OpSum(), length(A))
     for (i, jump) in enumerate(A)
         for a in jump
@@ -121,13 +120,18 @@ function localjumps(
 end
 
 function firstordertrotter(
-    H::Sum, A::Vector{<:Sum}, steps::Int64, Δt::Float64, sites::ITensorNetworks.IndsNetwork
-)
+    H::Sum,
+    A::Vector{<:Sum},
+    steps::Int64,
+    Δt::Float64,
+    sites::ITensorNetworks.IndsNetwork{V},
+)::NoisyCircuits.NoisyCircuit where {V}
     channel_list = Vector{Channels.Channel}()
-    cache = Dict()
+    Q = NoisyCircuits.findindextype(sites)
+    cache = Dict{Vector{Q},Channels.Channel}()
     for _ in 1:steps
         for v in vertices(sites)
-            ev = Dict(v => 1)
+            ev = Dict{V,Int64}(v => 1)
             locH = localhamiltonian(H, ev, 1)
             locA = localjumps(A, ev, 1)
             push!(
@@ -135,7 +139,7 @@ function firstordertrotter(
             )
         end
         for e in edges(sites)
-            esites = Dict(src(e) => 1, dst(e) => 2)
+            esites = Dict{V,Int64}(src(e) => 1, dst(e) => 2)
             locH = localhamiltonian(H, esites, 2)
             locA = localjumps(A, esites, 2)
             push!(
@@ -150,13 +154,18 @@ function firstordertrotter(
 end
 
 function secondordertrotter(
-    H::Sum, A::Vector{<:Sum}, steps::Int64, Δt::Float64, sites::ITensorNetworks.IndsNetwork
-)
+    H::Sum,
+    A::Vector{<:Sum},
+    steps::Int64,
+    Δt::Float64,
+    sites::ITensorNetworks.IndsNetwork{V},
+)::NoisyCircuits.NoisyCircuit where {V}
     channel_list = Vector{Channels.Channel}()
-    cache = Dict()
+    Q = NoisyCircuits.findindextype(sites)
+    cache = Dict{Vector{Q},Channels.Channel}()
     for i in 1:steps
         for v in vertices(sites)
-            ev = Dict(v => 1)
+            ev = Dict{V,Int64}(v => 1)
             locH = localhamiltonian(H, ev, 1)
             locA = localjumps(A, ev, 1)
             push!(
@@ -165,7 +174,7 @@ function secondordertrotter(
             )
         end
         for e in edges(sites)
-            esites = Dict(src(e) => 1, dst(e) => 2)
+            esites = Dict{V,Int64}(src(e) => 1, dst(e) => 2)
             locH = localhamiltonian(H, esites, 2)
             locA = localjumps(A, esites, 2)
             push!(
@@ -180,7 +189,7 @@ function secondordertrotter(
             )
         end
         for e in reverse(edges(sites))
-            esites = Dict(src(e) => 1, dst(e) => 2)
+            esites = Dict{V,Int64}(src(e) => 1, dst(e) => 2)
             locH = localhamiltonian(H, esites, 2)
             locA = localjumps(A, esites, 2)
             push!(
@@ -195,7 +204,7 @@ function secondordertrotter(
             )
         end
         for v in reverse(vertices(sites))
-            ev = Dict(v => 1)
+            ev = Dict{V,Int64}(v => 1)
             locH = localhamiltonian(H, ev, 1)
             locA = localjumps(A, ev, 1)
             push!(
@@ -206,26 +215,5 @@ function secondordertrotter(
     end
     return NoisyCircuits.NoisyCircuit(channel_list, sites)
 end
-
-#=
-function trotterizedlindblad(
-    H::Sum, A::Vector{<:Sum}, steps::Int64, Δt::Float64, sites::ITensorNetworks.IndsNetwork
-)
-    channel_list = Vector{Channels.Channel}()
-    for _ in steps
-        for e in edges(sites)
-            esites = Dict(src(e) => 1, dst(e) => 2)
-            locH = localhamiltonian(H, esites)
-            locA = localjumps(A, esites)
-            push!(
-                channel_list,
-                lindbladevolve(
-                    locH, locA, Δt, [first(sites[src(e)]), first(sites[dst(e)])]
-                ),
-            )
-        end
-    end
-    return NoisyCircuits.NoisyCircuit(channel_list, sites)
-end=#
 
 end #module

@@ -1,5 +1,4 @@
 module VectorizationNetworks
-export vectorize_density_matrix, innerprod, unvectorize_density_matrix
 
 using NamedGraphs: vertices
 using ITensorNetworks:
@@ -13,7 +12,7 @@ using ITensorNetworks:
     inner,
     apply,
     vertices
-using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index
+using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index, QN
 import ITensors: outer
 using ITensorsOpenSystems: Vectorization
 using OpenNetworks: Utils, VDMNetworks
@@ -29,7 +28,9 @@ fatsiteind = Vectorization.fatsiteind
 innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
 
-function fatsiteinds(sites::ITensorNetworks.IndsNetwork)
+function fatsiteinds(
+    sites::ITensorNetworks.IndsNetwork{V}
+)::ITensorNetworks.IndsNetwork{V} where {V}
     vsites = deepcopy(sites)
     for v in vertices(sites)
         if length(sites[v]) != 1
@@ -40,43 +41,7 @@ function fatsiteinds(sites::ITensorNetworks.IndsNetwork)
     return vsites
 end
 
-function vectorize_density_matrix!(
-    ρ::ITensorNetwork, unvectorizedinds::IndsNetwork, vectorizedinds::IndsNetwork
-)::VDMNetwork
-    for vertex in vertices(unvectorizedinds)
-        @assert length(vectorizedinds[vertex]) == 1 "vectorized index at site $vertex is not unique"
-        @assert length(unvectorizedinds[vertex]) == 1 "site $vertex has wrong number of indices"
-        spacename = basespace(vectorizedinds[vertex][1])
-
-        if !ITensors.hastags(unvectorizedinds[vertex][1], spacename)
-            throw(
-                ArgmentError(
-                    "The vectorised index at site $i, $(vectorizedinds[vertex][1]), does not match the unvectorized index $(unvectorizedinds[vertex][1])",
-                ),
-            )
-        end
-        ρ[vertex] *= ITensors.delta(
-            ITensors.dag(unvectorizedinds[vertex][1]),
-            ITensors.dag(vectorizer_input(spacename)),
-        )
-        ρ[vertex] *= ITensors.delta(
-            unvectorizedinds[vertex][1]', vectorizer_input(spacename)'
-        )
-        ρ[vertex] *= vectorizer(spacename)
-        ρ[vertex] *= ITensors.delta(
-            ITensors.dag(vectorizer_output(spacename)), vectorizedinds[vertex][1]
-        )
-    end
-    return VDMNetwork(ρ, unvectorizedinds)
-end
-
-function vectorize_density_matrix(
-    ρ::ITensorNetwork, unvectorizedinds::IndsNetwork, vectorizedinds::IndsNetwork
-)::VDMNetwork
-    return vectorize_density_matrix!(deepcopy(ρ), unvectorizedinds, vectorizedinds)
-end
-
-function unvectorize_density_matrix!(ρ::VDMNetwork)::ITensorNetwork
+function unvectorize_density_matrix!(ρ::VDMNetwork{V})::ITensorNetwork{V} where {V}
     vectorizedinds = siteinds(ρ.network)
     unvectorizedinds = ρ.unvectorizedinds
     ρ = ρ.network
@@ -107,14 +72,12 @@ function unvectorize_density_matrix!(ρ::VDMNetwork)::ITensorNetwork
     return ρ
 end
 
-function unvectorize_density_matrix(ρ::VDMNetwork)::ITensorNetwork
+function unvectorize_density_matrix(ρ::VDMNetwork{V})::ITensorNetwork{V} where {V}
     return unvectorize_density_matrix!(deepcopy(ρ))
 end
 
-function idnetwork(ψ::ITensorNetwork)::ITensorNetwork
-    # Purpose: Creates an ITensorNetwork with identity tensors at each site.
-    # Inputs: inds (ITensorNetworks.IndsNetwork) - Site indices.
-    # Returns: ITensorNetwork - ITensorNetwork with identity tensors at each site.
+function idnetwork(ψ::ITensorNetwork{V})::ITensorNetwork{V} where {V}
+    # Creates an ITensorNetwork with identity tensors at each site. =#
     data_graph = ITensorNetwork(v -> "0", siteinds(ψ)).data_graph
     sitekeys = vertices(ψ)
     for key in sitekeys
@@ -132,8 +95,10 @@ function idnetwork(ψ::ITensorNetwork)::ITensorNetwork
     return ITensorNetwork(data_graph.vertex_data)
 end
 
-function vidnetwork(ψ::ITensorNetwork, vectorizedinds::IndsNetwork)::VDMNetwork
-    return vectorize_density_matrix(idnetwork(ψ), siteinds(ψ), vectorizedinds)
+function vidnetwork(
+    ψ::ITensorNetwork{V}, vectorizedinds::IndsNetwork{V,Index}
+)::VDMNetwork{V} where {V}
+    return VDMNetworks.VDMNetwork(idnetwork(ψ), siteinds(ψ), vectorizedinds)
 end
 
 function vectorizedtrace(ρ::VDMNetwork; kwargs...)::Complex
@@ -146,7 +111,7 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     ψ = ITensorNetwork(v -> "0", ρ.unvectorizedinds)
     idn = idnetwork(ψ)
     new_network = apply(op, idn)
-    new_op = vectorize_density_matrix(new_network, ρ.unvectorizedinds, siteinds(ρ))
+    new_op = VDMNetworks.VDMNetwork(new_network, ρ.unvectorizedinds, siteinds(ρ))
     return inner(ρ.network, new_op.network; kwargs...)
 end
 

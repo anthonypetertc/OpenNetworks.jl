@@ -12,24 +12,20 @@ using ITensorNetworks:
     gauge_error,
     apply
 using ITensors: ITensors, ITensor, inds, plev
-using OpenNetworks: Channels, NoisyCircuits, ProgressSettings
+using OpenNetworks: Channels, NoisyCircuits, ProgressSettings, CustomParsing
 using ProgressMeter
 using SplitApplyCombine: group
 
 default_progress_kwargs = ProgressSettings.default_progress_kwargs
 
 function prepare_noiseless_circuit(
-    qc::Vector{Dict{String,Any}}, sites::ITensorNetworks.IndsNetwork
+    qc::Vector{CustomParsing.ParsedGate}, sites::ITensorNetworks.IndsNetwork
 )
-    ψ = ITensorNetwork(v -> "0", sites)
     gate_list = Vector{ITensor}()
     for gate in qc
-        if !haskey(gate, "Qubits") || !haskey(gate, "Name") || !haskey(gate, "Params")
-            throw("Gate does not have the correct keys.")
-        end
-        qubits = gate["Qubits"]
-        name = gate["Name"]
-        params = gate["Params"]
+        qubits = gate.qubits
+        name = gate.name
+        params = gate.params
         params = NoisyCircuits.prepare_params(params, name)
         tensor = NoisyCircuits.make_gate(name, qubits, params, sites)
         push!(gate_list, tensor)

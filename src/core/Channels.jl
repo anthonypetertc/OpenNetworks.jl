@@ -35,7 +35,7 @@ function vexpect(obs::MPO, rho::MPS)
 end
 
 function tagstring(T::ITensors.TagSet)::String
-    # Purpose: Takes a tag set and converts it into a string.
+    # Takes a tag set and converts it into a string.
 
     res = ""
     ts = [tag for tag in T]
@@ -48,7 +48,7 @@ function tagstring(T::ITensors.TagSet)::String
 end
 
 function find_site(ind::ITensors.Index)
-    #= Purpose: Given a site index for an ITensor, this function will return the site it corresponds to.=#
+    #= Given a site index for an ITensor, this function will return the site it corresponds to.=#
 
     @assert hastags(ind, "Site") "Can't find site: Index has no site."
     ts = tagstring(tags(ind))
@@ -71,26 +71,25 @@ function find_site(ind::ITensors.Index, sites::IndsNetwork)
     end
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetwork)::Tuple
+function find_site(ind::ITensors.Index, ψ::ITensorNetwork{V})::V where {V}
     #= Purpose: Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
-function find_site(ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork)::Tuple
-    #= Purpose: Finds the site of an index.=#
+function find_site(
+    ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork{V}
+)::V where {V}
+    #=  Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
-function find_site(ind::ITensors.Index, ρ::VDMNetwork)::Tuple
-    #= Purpose: Finds the site of an index.=#
+function find_site(ind::ITensors.Index, ρ::VDMNetwork{V})::V where {V}
+    #= Finds the site of an index.=#
     return find_site(ind, ρ.network)
 end
 
 function opdouble(o::ITensor, rho::MPS)::ITensor
-    #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
-    Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            rho (MPS) - Density Matrix of the system.
-    Returns: ITensor - Operator acting on the doubled Hilbert space. =#
+    #=Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.=#
 
     inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
     vs = ITensors.siteinds(rho)
@@ -122,10 +121,7 @@ function opdouble(o::ITensor, rho::MPS)::ITensor
 end
 
 function opdouble(o::ITensor, rho::Vectorization.VectorizedDensityMatrix)::ITensor
-    #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
-    Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            rho (MPS) - Density Matrix of the system.
-    Returns: ITensor - Operator acting on the doubled Hilbert space. =#
+    #= Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.=#
 
     inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
     vs = ITensors.siteinds(rho)
@@ -156,7 +152,7 @@ function opdouble(o::ITensor, rho::Vectorization.VectorizedDensityMatrix)::ITens
     return o
 end
 
-function opdouble(o::ITensor, ρ::VDMNetwork)::ITensor
+function opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor where {V}
     #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
     Inputs: o (ITensor) - Operator on underlying Hilbert Space.
             ρ (ITensorNetwork) - Density Matrix of the system.
@@ -168,7 +164,7 @@ function opdouble(o::ITensor, ρ::VDMNetwork)::ITensor
     vs = siteinds(ρ)
     o_dag = ITensors.addtags(dag(o), "dag")
     o *= o_dag
-    site_list = Vector{Tuple}()
+    site_list = Vector{V}()
     for ind in inds
         site = find_site(ind, ψ)
         push!(site_list, site)
@@ -214,7 +210,7 @@ function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool
     return Array(kr_sum, inds(kr_sum)) ≈ Array(id_ops, inds(kr_sum))
 end
 
-function _krausindscheck(kraus_maps::Vector)
+function _krausindscheck(kraus_maps::Vector{ITensor})::Nothing
     #= Purpose: Checks if the Kraus operators are acting on the same indices.
     Inputs: kraus_maps (Vector) - Vector of Kraus operators.
     Returns: Nothing =#
@@ -229,7 +225,7 @@ struct Channel
     name::String
     tensor::ITensor
 
-    function Channel(name::String, tensor::ITensor)
+    function Channel(name::String, tensor::ITensor)::Channel
         return new(name, tensor)
     end
 
@@ -237,14 +233,16 @@ struct Channel
         name::String,
         kraus_maps::Vector{ITensor},
         rho::Vectorization.VectorizedDensityMatrix,
-    )
+    )::Channel
         @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, rho) for kraus in kraus_maps])
         return new(name, tensor)
     end
 
-    function Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork)
+    function Channel(
+        name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork{V}
+    )::Channel where {V}
         @assert _krauscheck(kraus_maps) == true "Kraus operators invalid: ΣK†K ≆ I"
         _krausindscheck(kraus_maps)
         tensor = reduce(+, [opdouble(kraus, ρ) for kraus in kraus_maps])
@@ -255,11 +253,7 @@ end
 function depolarizing_channel(
     p::Real, sites::Vector, rho::Vectorization.VectorizedDensityMatrix
 )::Channel
-    #= Purpose: Creates a depolarizing channel for a given density matrix.
-    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
-            sites (Vector) - Vector of sites that the channel acts on.
-            rho (MPS) - Density matrix that the channel acts on.
-    Returns: Channel - Depolarizing channel with the given parameters. =#
+    #= Creates a depolarizing channel for a given density matrix. =#
 
     if !(0 <= p <= 1)
         throw("parameter p must be between 0 and 1.")
@@ -305,11 +299,7 @@ function depolarizing_channel(
 end
 
 function depolarizing_channel(p::Real, sites::Vector, rho::MPS)::Channel
-    #= Purpose: Creates a depolarizing channel for a given density matrix.
-    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
-            sites (Vector) - Vector of sites that the channel acts on.
-            rho (MPS) - Density matrix that the channel acts on.
-    Returns: Channel - Depolarizing channel with the given parameters. =#
+    #= Creates a depolarizing channel for a given density matrix.=#
 
     if !(0 <= p <= 1)
         throw("parameter p must be between 0 and 1.")
@@ -354,18 +344,13 @@ function depolarizing_channel(p::Real, sites::Vector, rho::MPS)::Channel
     end
 end
 
-function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork)::Channel
-    #= Purpose: Creates a depolarizing channel for a given density matrix.
-    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
-            sites (Vector) - Vector of sites that the channel acts on.
-            rho (MPS) - Density matrix that the channel acts on.
-    Returns: Channel - Depolarizing channel with the given parameters. =#
+function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork{V})::Channel where {V}
+    #= Creates a depolarizing channel for a given density matrix. =#
 
     if !(0 < p <= 1)
         throw("parameter p must be between 0 and 1.")
     end
     for site in sites
-        #@assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
         if !(hastags(site, "Qubit"))
             throw("Depolarizing channel only implemented for Qubits.")
         end
@@ -406,9 +391,13 @@ function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork)::Channel
     end
 end
 
-function dephasing(
-    p::Real, site::Index, ρ::Union{VDMNetwork,VectorizedDensityMatrix}
-)::Channel
+function dephasing(p::Real, site::ITensors.Index, ρ::VDMNetwork{V})::Channel where {V}
+    M0 = sqrt(1 - p) * delta(site', site)
+    M1 = sqrt(p) * op("Z", site)
+    return Channel("dephasing", [M0, M1], ρ)
+end
+
+function dephasing(p::Real, site::ITensors.Index, ρ::VectorizedDensityMatrix)::Channel
     M0 = sqrt(1 - p) * delta(site', site)
     M1 = sqrt(p) * op("Z", site)
     return Channel("dephasing", [M0, M1], ρ)
@@ -419,14 +408,14 @@ function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     return ITensors.apply(channel_tensor, ρ; kwargs...)
 end
 
-function apply(channel::Channel, ρ::VDMNetwork; kwargs...)::VDMNetwork
+function apply(channel::Channel, ρ::VDMNetwork{V}; kwargs...)::VDMNetwork{V} where {V}
     channel_tensor = channel.tensor
     return VDMNetwork(
         ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizedinds
     )
 end
 
-function apply(o::ITensors.ITensor, ρ::VDMNetwork; kwargs...)::VDMNetwork
+function apply(o::ITensors.ITensor, ρ::VDMNetwork{V}; kwargs...)::VDMNetwork{V} where {V}
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network; kwargs...), ρ.unvectorizedinds)
 end

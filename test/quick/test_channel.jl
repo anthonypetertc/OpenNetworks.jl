@@ -1,7 +1,7 @@
 using Test
 using ITensorsOpenSystems
 using ITensors
-using OpenNetworks: VectorizationNetworks, Utils, Channels
+using OpenNetworks: Utils, Channels
 using Random
 using LinearAlgebra
 using Graphs
@@ -13,7 +13,6 @@ apply = Channels.apply
 Channel = Channels.Channel
 find_site = Channels.find_site
 
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 swapprime = Utils.swapprime
 
 X = op("X", square_sites[(1, 1)])

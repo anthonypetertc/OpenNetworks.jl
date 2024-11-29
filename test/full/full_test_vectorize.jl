@@ -2,12 +2,11 @@ using Test
 using ITensorsOpenSystems: Vectorization
 using ITensorNetworks: ⊗, prime, dag, ITensorNetwork, ITensorNetworks, siteinds, contract
 using ITensors: ITensors, op
-using OpenNetworks: VectorizationNetworks, Utils
+using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
 using Random
 using LinearAlgebra
 using Graphs
 
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 swapprime = Utils.swapprime
 
 g_dims = square_g_dims

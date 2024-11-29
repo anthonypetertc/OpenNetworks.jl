@@ -133,7 +133,7 @@ end
     t = steps * dt
     ψ = ITensorNetwork(v -> "0", square_sites)
     ψ[(1, 1)] = ITensors.apply(op("H", square_sites[(1, 1)]), ψ[(1, 1)])
-    ρ = OpenNetworks.VectorizationNetworks.vectorize_density_matrix(
+    ρ = OpenNetworks.VDMNetworks.VDMNetwork(
         OpenNetworks.Utils.outer(ψ, ψ), square_sites, square_vsites
     )
 
@@ -145,14 +145,14 @@ end
 
     rho2 = ITensors.apply(L.tensor, ITensorNetworks.contract(ρ.network)) # Exact evolution.
 
-    gates_list1 = reduce(vcat, trottercircuit.moments_list)
+    gates_list1 = trottercircuit.channel_list
     gate = gates_list1[1].tensor
     for g in gates_list1
         gate = ITensors.apply(g.tensor, gate)
     end
     rho3 = ITensors.apply(gate, ITensorNetworks.contract(ρ.network)) # Evolution by first order Trotter circuit.
 
-    gates_list2 = reduce(vcat, trottercircuit2.moments_list)
+    gates_list2 = trottercircuit2.channel_list
     gate2 = gates_list2[1].tensor
     for g in gates_list1
         gate2 = ITensors.apply(g.tensor, gate2)

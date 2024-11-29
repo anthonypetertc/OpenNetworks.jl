@@ -11,7 +11,6 @@ using ITensorNetworks
 apply = Channels.apply
 swapprime! = Utils.swapprime!
 swapprime = Utils.swapprime
-vectorize_density_matrix = VectorizationNetworks.vectorize_density_matrix
 
 g_dims = square_g_dims
 g = square_g
@@ -55,22 +54,15 @@ end;
 
 #Prepare state in all zero state.
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
 #Apply X gate to first qubit.
 o = op("X", sites[(1, 1)])
 ϕ = ITensorNetworks.apply(o, ψ)
-σ = vectorize_density_matrix(Utils.outer(ϕ, ϕ), sites, vsites)
+σ = VDMNetworks.VDMNetwork(Utils.outer(ϕ, ϕ), sites, vsites)
 
 g2 = named_grid((3, 3))
 ψ2 = ITensorNetwork(v -> "0", siteinds("Qubit", g2))
-#=
-@testset "innerprod" begin
-    @test Utils.innerprod(ψ, ψ) ≈ 1.0
-    @test Utils.innerprod(ψ, ϕ) ≈ 0.0
-    @test Utils.innerprod(ρ, ρ) ≈ 1.0
-    @test Utils.innerprod(ρ, σ) ≈ 0.0
-end;
-=#
+
 @testset "siteinds" begin
     @test siteinds(ρ).data_graph.vertex_data == vsites.data_graph.vertex_data
 end;
@@ -95,7 +87,7 @@ end;
 end;
 
 ψ = ITensorNetwork(v -> "0", sites)
-ρ = vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
 
 @testset "trace_unitary" begin
     unvectorized = deepcopy(ψ)
