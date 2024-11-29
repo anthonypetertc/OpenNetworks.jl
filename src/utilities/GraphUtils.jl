@@ -8,7 +8,6 @@ using ITensorNetworks
 using JSON
 using OpenNetworks: CustomParsing, OpenNetworks
 ParsedGate = CustomParsing.ParsedGate
-#circ_dict = JSON.parsefile("src/circuits/example_circuits/circ.json")
 
 function extract_adjacency_graph(
     qc::Vector{OpenNetworks.CustomParsing.ParsedGate}
@@ -29,24 +28,6 @@ function extract_adjacency_graph(
     end
     return G
 end
-
-#=
-function extract_adjacency_graph(qc::Vector{Dict{String,Any}})::NamedGraphs.NamedGraph
-    qubits = Set{Tuple{Int}}()
-    for gate in qc
-        for qubit in gate["Qubits"]
-            push!(qubits, (qubit,))
-        end
-    end
-    G = NamedGraphs.NamedGraph(sort!(collect(qubits)))
-    for gate in qc
-        if length(gate["Qubits"]) == 2
-            add_edges!(G, [(gate["Qubits"][1],) => (gate["Qubits"][2],)])
-        end
-    end
-    return G
-end
-=#
 
 function named_ring_graph(n::Integer)
     G = NamedGraph([i for i in 0:(n - 1)])

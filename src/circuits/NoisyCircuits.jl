@@ -39,25 +39,13 @@ struct NoisyCircuit{V}
     n_gates::Int
 end
 
-#=
-function NoisyCircuit(
-    moments_list::Vector{Vector{Channel}},
-    fatsites::ITensorNetworks.IndsNetwork,
-    n_gates::Int,
-)
-    return new(moments_list, fatsites, n_gates)
-end=#
-
 function NoisyCircuit(
     parsedcircuit::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel
 )
     noisycircuit = add_noise_to_circuit(parsedcircuit, noise_model)
     compressedcircuit = absorb_single_qubit_gates(noisycircuit)
-    #=moments_list, n_gates = compile_into_moments(
-         compressed_circuit, noise_model.vectorizedsiteinds
-     )=#
     n_gates = length(compressedcircuit)
-    return NoisyCircuit(compressedcircuit, noise_model.vectorizedsiteinds, n_gates)
+    return NoisyCircuit(compressedcircuit, noise_model.fatsites, n_gates)
 end
 
 function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
@@ -127,37 +115,46 @@ function run_circuit(
     return evolved_ρ
 end
 
+function findindextype(i::ITensors.Index)::Type
+    return typeof(i)
+end
+
+function findindextype(fatsites::ITensorNetworks.IndsNetwork)::Type
+    firstind = first(fatsites[first(ITensorNetworks.vertices(fatsites))])
+    return findindextype(firstind)
+end
+
 function compile_into_moments!(
-    channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork
-)::Tuple{Vector{Vector{Channel}},Int}
-    sites = Set{ITensors.Index{<:Any}}()
+    channel_list::Vector{Channels.Channel}, siteinds::ITensorNetworks.IndsNetwork, V::Type
+)::Tuple{Vector{Vector{Channels.Channel}},Int}
+    sites = Set{V}()
     for key in keys(siteinds.data_graph.vertex_data)
         push!(sites, siteinds[key][1])
     end
-    moments_list = Vector{Vector{Channel}}()
-    current_moment = Vector{Channel}()
-    current_moment_inds = Set{ITensors.Index{<:Any}}()
+    moments_list = Vector{Vector{Channels.Channel}}()
+    current_moment = Vector{Channels.Channel}()
+    current_moment_inds = Set{V}()
     n_gates = length(channel_list)
-    while channel_list != []
+    while !isempty(channel_list)
         current_moment, current_moment_inds, channel_list = single_pass_compile_into_moments!(
             channel_list, current_moment, current_moment_inds
         )
         pushfirst!(moments_list, current_moment)
-        current_moment = Vector{Channel}()
-        current_moment_inds = Set{ITensors.Index{<:Any}}()
+        current_moment = Vector{Channels.Channel}()
+        current_moment_inds = Set{V}()
     end
     return moments_list, n_gates
 end
 
 function single_pass_compile_into_moments!(
-    channel_list::Vector{Channel},
-    current_moment::Vector{Channel},
-    current_moment_inds::Set{ITensors.Index{<:Any}},
-)::Tuple{Vector{Channel},Set{ITensors.Index{<:Any}},Vector{Channel}}
-    if channel_list == []
+    channel_list::Vector{Channels.Channel},
+    current_moment::Vector{Channels.Channel},
+    current_moment_inds::Set{ITensors.Index{V}},
+)::Tuple{Vector{Channels.Channel},Set{ITensors.Index{V}},Vector{Channels.Channel}} where {V}
+    if isempty(channel_list)
         throw("Empty channel list.")
     end
-    for (i, channel) in enumerate(reverse(channel_list))
+    for (_, channel) in enumerate(reverse(channel_list))
         current_inds = inds(channel.tensor; plev=0)
         if isempty(current_inds ∩ current_moment_inds)
             pushfirst!(current_moment, channel)
@@ -171,78 +168,15 @@ function single_pass_compile_into_moments!(
 end
 
 function compile_into_moments(
-    channel_list::Vector{Channel}, siteinds::ITensorNetworks.IndsNetwork
+    channel_list::Vector{Channels.Channel}, fatsites::ITensorNetworks.IndsNetwork
 )
-    return compile_into_moments!(deepcopy(channel_list), siteinds)
-end
-#=
-function absorb_single_qubit_gates(channel_list::Vector{Channel})::Vector{Channel}
-    new_channel_list = Vector{Channel}()
-    single_qubit_list = Vector{Channel}()
-    index_list = Vector{Any}()
-    for channel in channel_list
-        if length(inds(channel.tensor)) == 2
-            prepend!(single_qubit_list, [channel])
-            gate_index = [ind for ind in inds(channel.tensor) if plev(ind) == 0]
-            @assert length(gate_index) == 1
-            prepend!(index_list, gate_index)
-        else
-            new_channel = deepcopy(channel)
-            locations_to_remove = []
-            for (i, ind) in enumerate(index_list)
-                if ind in inds(channel.tensor)
-                    new_channel = Channels.compose(new_channel, single_qubit_list[i])
-                    push!(locations_to_remove, i)
-                end
-            end
-            for i in reverse(locations_to_remove)
-                deleteat!(single_qubit_list, i)
-                deleteat!(index_list, i)
-            end
-            push!(new_channel_list, new_channel)
-        end
-    end
-    squeezed_single_qubits, new_index_list = squeeze_single_qubit_gates(
-        single_qubit_list, index_list
-    )
-    for j in 0:(length(new_channel_list) - 1)
-        locations_to_remove = []
-        for (i, index) in enumerate(new_index_list)
-            if index in inds(new_channel_list[end - j].tensor)
-                new_channel_list[end - j] = Channels.compose(
-                    squeezed_single_qubits[i], new_channel_list[end - j]
-                )
-                push!(locations_to_remove, i)
-            end
-        end
-        for i in reverse(locations_to_remove)
-            deleteat!(squeezed_single_qubits, i)
-            deleteat!(new_index_list, i)
-        end
-    end
-    append!(new_channel_list, squeezed_single_qubits)
-    return new_channel_list
+    indextype = findindextype(fatsites)
+    return compile_into_moments!(deepcopy(channel_list), fatsites, indextype)
 end
 
-function squeeze_single_qubit_gates(
-    channel_list::Vector{Channel}, index_list::Vector{<:Any}
-)::Tuple{Vector{Channel},Vector{<:Any}}
-    new_channel_list = Vector{Channel}()
-    new_index_list = Vector{ITensors.Any}()
-    index_set = Set(index_list)
-    for ind in index_set
-        locations = [i for i in 1:length(index_list) if index_list[i] == ind]
-        new_channel = deepcopy(channel_list[locations[1]])
-        for i in locations[2:end]
-            new_channel = Channels.compose(new_channel, channel_list[i])
-        end
-        push!(new_channel_list, new_channel)
-        push!(new_index_list, ind)
-    end
-    @assert length(new_channel_list) == length(new_index_list)
-    return new_channel_list, new_index_list
+function compile_into_moments(noisycircuit::NoisyCircuit)
+    return compile_into_moments(noisycircuit.channel_list, noisycircuit.fatsites)
 end
-=#
 
 function absorb_single_qubit_gates(
     channel::Channels.Channel,
@@ -301,19 +235,19 @@ end
 
 function absorb_single_qubit_gates(channel_list::Vector{Channels.Channel})
     firstchannel = first(channel_list)
-    index = first(inds(firstchannel.tensor))
-    return absorb_single_qubit_gates(channel_list, index)
+    indextype = findindextype(first(inds(firstchannel.tensor)))
+    return absorb_single_qubit_gates(channel_list, indextype)
 end
 
 function absorb_single_qubit_gates(
-    channel_list::Vector{Channels.Channel}, index::ITensors.Index{V}
-)::Vector{Channels.Channel} where {V}
+    channel_list::Vector{Channels.Channel}, V::Type
+)::Vector{Channels.Channel}
     new_channel_list = Vector{Channels.Channel}()
     single_qubit_list = Vector{Channels.Channel}()
-    index_list = Vector{ITensors.Index{V}}()
+    index_list = Vector{V}()
     for channel in channel_list
         indices = inds(channel.tensor)
-        sites = filter(indices; plev=0)
+        sites = inds(channel.tensor; plev=0)
         if length(indices) == 2
             #If a single site channel, add it to the single_qubit_list.
             prepend!(single_qubit_list, [channel])
@@ -330,7 +264,7 @@ function absorb_single_qubit_gates(
     squeezed_single_qubits, new_index_list = squeeze_single_qubit_gates(
         single_qubit_list, index_list
     )
-    # Now reverse-absorb these into the list of new channels,
+    # Now absorb these (backwards) into the list of new channels,
     # to get the final list of channels.
     new_channel_list = reverse_absorb_single_qubit_gates(
         new_channel_list, new_index_list, squeezed_single_qubits
@@ -365,12 +299,12 @@ function add_noise_to_circuit(
 )::Vector{Channel} where {V}
     if (
         GraphUtils.extract_adjacency_graph(qc) !=
-        noise_model.siteinds.data_graph.underlying_graph
+        noise_model.sites.data_graph.underlying_graph
     )
         throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
     end
-    sites = noise_model.siteinds
-    vsites = noise_model.vectorizedsiteinds
+    sites = noise_model.sites
+    vsites = noise_model.fatsites
     ψ = ITensorNetwork(v -> "0", sites)::ITensorNetwork{V}
     ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)::VDMNetwork{V}
     channel_list = Vector{Channels.Channel}()
@@ -401,54 +335,6 @@ function add_noise_to_circuit(
     end
     return channel_list
 end
-
-#=
-function add_noise_to_circuit(
-    qc::Vector{Dict{String,Any}}, noise_model::NoiseModel
-)::Vector{Channel}
-    if (
-        GraphUtils.extract_adjacency_graph(qc) !=
-        noise_model.siteinds.data_graph.underlying_graph
-    )
-        throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
-    end
-    sites = noise_model.siteinds
-    vsites = noise_model.vectorizedsiteinds
-    ψ = ITensorNetwork(v -> "0", sites)
-    ρ = VectorizationNetworks.vectorize_density_matrix(Utils.outer(ψ, ψ), sites, vsites)
-    channel_list = Vector{Channel}()
-    for gate in qc
-        if !haskey(gate, "Qubits") || !haskey(gate, "Name") || !haskey(gate, "Params")
-            throw("Gate does not have the correct keys.")
-        end
-        qubits = gate["Qubits"]
-        name = gate["Name"]
-        params = gate["Params"]
-        params = prepare_params(params, name)
-        tensor = make_gate(name, qubits, params, sites)
-        gate_channel = Channel(name, [tensor], ρ)
-        count = 0
-        for instruction in noise_model.noise_instructions
-            if issubset(
-                Set([vsites[(i,)][1] for i in qubits]), instruction.qubits_noise_applies_to
-            ) && name in instruction.name_of_gates
-                #Need to introduce logging: println("Adding noise to gate.")
-                if count != 0
-                    throw("Multiple instructions for the same gate.")
-                end
-                count += 1
-                index_ordering_of_gate = [vsites[(i,)][1] for i in qubits]
-                noise_channel = NoiseModels.prepare_noise_for_gate(
-                    instruction, index_ordering_of_gate
-                )
-                gate_channel = Channels.compose(noise_channel, gate_channel)
-            end
-        end
-        push!(channel_list, gate_channel)
-    end
-    return channel_list
-end
-=#
 
 function make_gate(
     name::String,

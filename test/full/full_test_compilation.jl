@@ -183,7 +183,7 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
         end
     =#
     @testset "Noisy Circuit object" begin
-        @test circuit_object.fatsites == noise_model.vectorizedsiteinds
+        @test circuit_object.fatsites == noise_model.fatsites
         for (j, gate) in enumerate(circuit_object.channel_list)
             @test gate.tensor == compressed_noisy_circuit[j].tensor
             @test gate.name == compressed_noisy_circuit[j].name

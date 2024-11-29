@@ -61,7 +61,7 @@ end
 
 struct NoiseModel{V}
     noise_instructions::Set{NoiseInstruction}
-    siteinds::ITensorNetworks.IndsNetwork{V,Index}
-    vectorizedsiteinds::ITensorNetworks.IndsNetwork{V,Index}
+    sites::ITensorNetworks.IndsNetwork{V,Index}
+    fatsites::ITensorNetworks.IndsNetwork{V,Index}
 end
 end

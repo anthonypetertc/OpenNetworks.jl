@@ -35,7 +35,7 @@ function vexpect(obs::MPO, rho::MPS)
 end
 
 function tagstring(T::ITensors.TagSet)::String
-    # Purpose: Takes a tag set and converts it into a string.
+    # Takes a tag set and converts it into a string.
 
     res = ""
     ts = [tag for tag in T]
@@ -48,7 +48,7 @@ function tagstring(T::ITensors.TagSet)::String
 end
 
 function find_site(ind::ITensors.Index)
-    #= Purpose: Given a site index for an ITensor, this function will return the site it corresponds to.=#
+    #= Given a site index for an ITensor, this function will return the site it corresponds to.=#
 
     @assert hastags(ind, "Site") "Can't find site: Index has no site."
     ts = tagstring(tags(ind))
@@ -79,20 +79,17 @@ end
 function find_site(
     ind::ITensors.Index, ψ::ITensorNetworks.VidalITensorNetwork{V}
 )::V where {V}
-    #= Purpose: Finds the site of an index.=#
+    #=  Finds the site of an index.=#
     return find_site(ind, siteinds(ψ))
 end
 
 function find_site(ind::ITensors.Index, ρ::VDMNetwork{V})::V where {V}
-    #= Purpose: Finds the site of an index.=#
+    #= Finds the site of an index.=#
     return find_site(ind, ρ.network)
 end
 
 function opdouble(o::ITensor, rho::MPS)::ITensor
-    #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
-    Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            rho (MPS) - Density Matrix of the system.
-    Returns: ITensor - Operator acting on the doubled Hilbert space. =#
+    #=Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.=#
 
     inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
     vs = ITensors.siteinds(rho)
@@ -124,10 +121,7 @@ function opdouble(o::ITensor, rho::MPS)::ITensor
 end
 
 function opdouble(o::ITensor, rho::Vectorization.VectorizedDensityMatrix)::ITensor
-    #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
-    Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            rho (MPS) - Density Matrix of the system.
-    Returns: ITensor - Operator acting on the doubled Hilbert space. =#
+    #= Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.=#
 
     inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
     vs = ITensors.siteinds(rho)
@@ -259,11 +253,7 @@ end
 function depolarizing_channel(
     p::Real, sites::Vector, rho::Vectorization.VectorizedDensityMatrix
 )::Channel
-    #= Purpose: Creates a depolarizing channel for a given density matrix.
-    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
-            sites (Vector) - Vector of sites that the channel acts on.
-            rho (MPS) - Density matrix that the channel acts on.
-    Returns: Channel - Depolarizing channel with the given parameters. =#
+    #= Creates a depolarizing channel for a given density matrix. =#
 
     if !(0 <= p <= 1)
         throw("parameter p must be between 0 and 1.")
@@ -309,11 +299,7 @@ function depolarizing_channel(
 end
 
 function depolarizing_channel(p::Real, sites::Vector, rho::MPS)::Channel
-    #= Purpose: Creates a depolarizing channel for a given density matrix.
-    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
-            sites (Vector) - Vector of sites that the channel acts on.
-            rho (MPS) - Density matrix that the channel acts on.
-    Returns: Channel - Depolarizing channel with the given parameters. =#
+    #= Creates a depolarizing channel for a given density matrix.=#
 
     if !(0 <= p <= 1)
         throw("parameter p must be between 0 and 1.")
@@ -358,18 +344,13 @@ function depolarizing_channel(p::Real, sites::Vector, rho::MPS)::Channel
     end
 end
 
-function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork{<:Any})::Channel
-    #= Purpose: Creates a depolarizing channel for a given density matrix.
-    Inputs: p (Real) - Parameter for the depolarizing channel. Must be between 0 and 1.
-            sites (Vector) - Vector of sites that the channel acts on.
-            rho (MPS) - Density matrix that the channel acts on.
-    Returns: Channel - Depolarizing channel with the given parameters. =#
+function depolarizing_channel(p::Real, sites::Vector, rho::VDMNetwork{V})::Channel where {V}
+    #= Creates a depolarizing channel for a given density matrix. =#
 
     if !(0 < p <= 1)
         throw("parameter p must be between 0 and 1.")
     end
     for site in sites
-        #@assert find_site(site) <= length(siteinds(rho)) "All sites must be sites that ρ has."
         if !(hastags(site, "Qubit"))
             throw("Depolarizing channel only implemented for Qubits.")
         end
