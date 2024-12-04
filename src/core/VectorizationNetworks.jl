@@ -115,4 +115,23 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     return inner(ρ.network, new_op.network; kwargs...)
 end
 
+function ITensorNetworks.vertices(ρ::VDMNetwork)
+    return ITensorNetworks.vertices(ρ.network)
+end
+
+function ITensorNetworks.edges(ρ::VDMNetwork)
+    return ITensorNetworks.edges(ρ.network)
+end
+
+function ITensorNetworks.expect(
+    operator::AbstractString, ρ::VDMNetworks.VDMNetwork{V}; kwargs...
+) where {V}
+    results = Dict()
+    for v in vertices(ρ)
+        o = op(operator, first(ρ.unvectorizedinds[v]))
+        results[v] = vexpect(ρ, o; kwargs...)
+    end
+    return results
+end
+
 end; # module

@@ -39,6 +39,13 @@ struct NoisyCircuit{V}
     n_gates::Int
 end
 
+function Base.show(io::IO, noisycircuit::NoisyCircuit{V}) where {V}
+    return println(
+        io,
+        "NoisyCircuit with $(noisycircuit.n_gates) channels, acting on a system with site indices $(noisycircuit.fatsites)",
+    )
+end
+
 function NoisyCircuit(
     parsedcircuit::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel
 )
@@ -75,7 +82,7 @@ function run_circuit(
     norm_sqr = norm_sqr_network(ρ.network)
     #Simple Belief Propagation Grouping
     bp_cache = BeliefPropagationCache(norm_sqr, group(v -> v[1], vertices(norm_sqr)))
-    bp_cache = update(bp_cache; maxiter=20)
+    bp_cache = update(bp_cache; cache_update_kwargs...)
     evolved_ψ = VidalITensorNetwork(ρ.network)
 
     p = Progress(noisy_circuit.n_gates; progress_kwargs...)
@@ -94,10 +101,10 @@ function run_circuit(
         end
 
         ProgressMeter.next!(p)
-        if i % regauge_frequency == 0
+        if j % regauge_frequency == 0
             ge = ITensorNetworks.gauge_error(evolved_ψ)
-            println("Gauge error is $ge")
-            if ge > 1e-6
+            #println("Gauge error is $ge")
+            if ge > cache_update_kwargs[:tol]
                 cache_ref = Ref{BeliefPropagationCache}(bp_cache)
                 ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
                 evolved_ψ = VidalITensorNetwork(
@@ -110,7 +117,7 @@ function run_circuit(
     end
 
     cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-    global ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
+    ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
     evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizedinds)
     return evolved_ρ
 end

@@ -1,5 +1,5 @@
 module Lindblad
-export lindbladevolve, trotterizedlindblad
+export lindbladevolve, trotterize
 using ITensors
 using ITensorMPS
 using ITensorsOpenSystems: ITensorsOpenSystems, Vectorization
@@ -214,6 +214,23 @@ function secondordertrotter(
         end
     end
     return NoisyCircuits.NoisyCircuit(channel_list, sites)
+end
+
+function trotterize(
+    H::Sum,
+    A::Vector{<:Sum},
+    steps::Int64,
+    Δt::Float64,
+    sites::ITensorNetworks.IndsNetwork{V};
+    order::Int64=2,
+)::NoisyCircuits.NoisyCircuit where {V}
+    if order == 1
+        return firstordertrotter(H, A, steps, Δt, sites)
+    elseif order == 2
+        return secondordertrotter(H, A, steps, Δt, sites)
+    else
+        throw("Higher order Suzuki-Trotter not implemented! order must be 2 or 1.")
+    end
 end
 
 end #module
