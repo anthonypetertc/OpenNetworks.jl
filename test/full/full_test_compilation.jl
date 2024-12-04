@@ -153,9 +153,6 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
     noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites)
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circ, noise_model)
     compressed_noisy_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
-    #=   compiled_noisy_circuit, n_gates = NoisyCircuits.compile_into_moments(
-           compressed_noisy_circuit, vsites
-       ) =#
     circuit_object = NoisyCircuits.NoisyCircuit(circ, noise_model)
 
     @testset "Noise applied to correct qubits." begin
@@ -172,16 +169,7 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
             @test length(inds(gate.tensor)) == 4
         end
     end
-    #=
-        @testset "Compilation into moments" begin
-            @test length(compiled_noisy_circuit) == 12
-            for (i, moment) in enumerate(compiled_noisy_circuit)
-                @test length(moment) == 1
-                @test moment[1].tensor == compressed_noisy_circuit[i].tensor
-                @test moment[1].name == compressed_noisy_circuit[i].name
-            end
-        end
-    =#
+
     @testset "Noisy Circuit object" begin
         @test circuit_object.fatsites == noise_model.fatsites
         for (j, gate) in enumerate(circuit_object.channel_list)
@@ -191,7 +179,6 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
     end
 end;
 
-#=
 @testset "Compilation into moments, small circuit." begin
     circuit = CustomParsing.parse_circuit("example_circuits/test_compile_circuit.json")
 
@@ -216,11 +203,13 @@ end;
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circuit, noise_model)
     compressed_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
     moments_list1, _ = NoisyCircuits.compile_into_moments(
-        compressed_circuit, noise_model.vectorizedsiteinds
+        compressed_circuit, noise_model.fatsites
     )
+    noisy_circuit = NoisyCircuits.NoisyCircuit(circuit, noise_model)
+    moments_list2, _ = NoisyCircuits.compile_into_moments(noisy_circuit)
 
     @test [length(moment) for moment in moments_list1] == [2, 3, 3, 4, 3, 3]
+    @test [length(moment) for moment in moments_list2] == [2, 3, 3, 4, 3, 3]
 
     # I have checked by hand that this circuit should have moments of length (2, 3, 3, 4, 3, 3)
 end;
-=#

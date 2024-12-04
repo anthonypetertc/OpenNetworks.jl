@@ -35,7 +35,7 @@ vsites = ITensorNetworks.siteinds("QubitVec", g)
     evolved_ρ = NoisyCircuits.apply(ρ, noisy_circuit; maxdim=128, cutoff=1e-16)
     @test ITensorNetworks.inner(evolved_ρ.network, ρ.network) ≈ 1.0
 end;
-#=
+
 @testset "Test evolution noiseless evolution" begin
     circuit = Circuits.prepare_noiseless_circuit(qc, sites)
     apply_kwargs = Dict{Symbol,Real}(:maxdim => 50, :cutoff => 1e-16)
@@ -46,4 +46,3 @@ end;
     )
     @test abs(ITensorNetworks.inner(ψ, evolved_ψ)) ≈ 1.0
 end;
-=#
