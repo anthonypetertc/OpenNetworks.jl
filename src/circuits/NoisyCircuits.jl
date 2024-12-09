@@ -89,7 +89,7 @@ function run_circuit(
     for (j, gate) in enumerate(noisy_circuit.channel_list)
         #println("Applying gate $j from moment $i")
         indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
-        channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
+        channel_sites = [findsite(evolved_ψ, ind) for ind in indices]
         if length(channel_sites) == 1
             #println("Applying single qubit gate")
             evolved_ψ[channel_sites[1]] = ITensors.apply(gate, evolved_ψ[channel_sites[1]])

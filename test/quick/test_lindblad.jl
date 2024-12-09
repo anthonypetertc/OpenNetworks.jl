@@ -1,7 +1,7 @@
 using ITensors
 using ITensorMPS
 using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix
-using OpenNetworks: Lindblad, Channels
+using OpenNetworks: Lindblad, Channels, PreBuiltChannels
 using Test
 
 @testset "test convertprodop" begin
@@ -92,7 +92,7 @@ end
     lindbladdephasing = Lindblad.lindbladevolve(H, A, t, [fatsys[1]])
 
     p = (1 - exp(-2 * t)) / 2
-    krausdephasing = Channels.dephasing(p, system[1], ρ)
+    krausdephasing = PreBuiltChannels.dephasing(p, system[1], ρ, system)
 
     @test krausdephasing.tensor ≈ lindbladdephasing.tensor
     rtol = 1e-8

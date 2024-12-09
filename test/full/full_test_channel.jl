@@ -1,19 +1,22 @@
 using Test
 using ITensorsOpenSystems
 using ITensors
-using OpenNetworks: VectorizationNetworks, Utils, Channels, VDMNetworks
+using OpenNetworks:
+    VectorizationNetworks,
+    Utils,
+    Channels,
+    VDMNetworks,
+    PreBuiltChannels.depolarizing,
+    PreBuiltChannels.dephasing
 using NamedGraphs: vertices
 using Random
 using LinearAlgebra
 using Graphs
 using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
 
-depolarizing_channel = Channels.depolarizing_channel
 opdouble = Channels.opdouble
 apply = Channels.apply
 Channel = Channels.Channel
-find_site = Channels.find_site
-
 swapprime = Utils.swapprime
 
 sites = siteinds("Qubit", 16)
@@ -38,22 +41,47 @@ T1 = op("T", sites[1])
 Tt = [1 0; 0 exp(im * π / 4)]
 
 @testset "opdouble" begin
-    vX1 = opdouble(X1, vrho)
-    vY3 = opdouble(Y3, vrho)
-    vZ12 = opdouble(Z12, vrho)
-    vT1 = opdouble(T1, vrho)
+    vX1 = opdouble(X1)
+    vT1 = opdouble(T1)
     @test all(vX1.tensor ≈ kron(Xt, Xt))
-    @test find_site(inds(vX1)[1]) == 1
-    @test all(vY3.tensor ≈ kron(Yt, conj(Yt)))
-    @test find_site(inds(vY3)[1]) == 3
-    @test all(vZ12.tensor ≈ kron(Zt, Zt))
-    @test find_site(inds(vZ12)[1]) == 12
     @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+end;
+@testset "opdouble" begin
+    vX1 = opdouble(X1, vrho, sites)
+    vY3 = opdouble(Y3, vrho, sites)
+    vZ12 = opdouble(Z12, vrho, sites)
+    vT1 = opdouble(T1, vrho, sites)
+    @test all(vX1.tensor ≈ kron(Xt, Xt))
+    @test findsite(vs, inds(vX1)[1]) == 1
+    @test all(vY3.tensor ≈ kron(Yt, conj(Yt)))
+    @test findsite(vs, inds(vY3)[1]) == 3
+    @test all(vZ12.tensor ≈ kron(Zt, Zt))
+    @test findsite(vs, inds(vZ12)[1]) == 12
+    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+end;
+@testset "Channel" begin
+    #kraus_maps = sqrt(1 / 4) * [Id1, X1, Y1, Z1]
+    max_depol = depolarizing(1, [square_sites[(2, 2)]], square_rand_vρ)
+    max_depol2 = depolarizing(1, square_sites[(2, 2)])
+    max_depol_t =
+        (1 / 4) * (
+            kron(Idt, conj(Idt)) +
+            kron(Xt, conj(Xt)) +
+            kron(Yt, conj(Yt)) +
+            kron(Zt, conj(Zt))
+        )
+    @test all(max_depol_t ≈ max_depol.tensor.tensor)
+    @test all(max_depol_t ≈ max_depol2.tensor.tensor)
+    #Would be good to test the two qubit version as well.
 end;
 
 @testset "Channel" begin
+    Id1 = op("Id", square_sites[(1, 1)])
+    X1 = op("X", square_sites[(1, 1)])
+    Z1 = op("Z", square_sites[(1, 1)])
+    Y1 = op("Y", square_sites[(1, 1)])
     kraus_maps = sqrt(1 / 4) * [Id1, X1, Y1, Z1]
-    max_depol = depolarizing_channel(1, [sites[4]], vrho)
+    max_depol = Channels.Channel("depol", kraus_maps)
     max_depol_t =
         (1 / 4) * (
             kron(Idt, conj(Idt)) +
@@ -86,13 +114,13 @@ Tt = [1 0; 0 exp(im * π / 4)]
     vZ1 = opdouble(Z, square_rand_vρ)
     vT1 = opdouble(T, square_rand_vρ)
     @test all(vX1.tensor ≈ kron(Xt, Xt))
-    @test find_site(inds(vX1)[1], square_rand_vρ) == (1, 1)
+    @test findsite(square_rand_vρ, inds(vX1)[1]) == (1, 1)
     @test all(vY1.tensor ≈ kron(Yt, conj(Yt)))
-    @test find_site(inds(vY1)[1], square_rand_vρ) == (1, 2)
+    @test findsite(square_rand_vρ, inds(vY1)[1]) == (1, 2)
     @test all(vZ1.tensor ≈ kron(Zt, Zt))
-    @test find_site(inds(vZ1)[1], square_rand_vρ) == (2, 2)
+    @test findsite(square_rand_vρ, inds(vZ1)[1]) == (2, 2)
     @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
-    @test find_site(inds(vT1)[1], square_rand_vρ) == (2, 1)
+    @test findsite(square_rand_vρ, inds(vT1)[1]) == (2, 1)
 end;
 
 @testset "apply" begin
@@ -134,7 +162,7 @@ end;
 
 @testset "Channel" begin
     kraus_maps = sqrt(1 / 4) * [Id1, X1, Y1, Z1]
-    max_depol = depolarizing_channel(1, [square_sites[(2, 2)]], square_rand_vρ)
+    max_depol = depolarizing(1, [square_sites[(2, 2)]], square_rand_vρ)
     max_depol_t =
         (1 / 4) * (
             kron(Idt, conj(Idt)) +

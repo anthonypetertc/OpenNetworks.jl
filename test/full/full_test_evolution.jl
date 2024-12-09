@@ -8,7 +8,8 @@ using OpenNetworks:
     NoiseModels,
     Circuits,
     CustomParsing,
-    VDMNetworks
+    VDMNetworks,
+    PreBuiltChannels
 using ITensorNetworks
 
 N = 12
@@ -22,7 +23,7 @@ vsites = ITensorNetworks.siteinds("QubitVec", g)
 
 @testset "Test circuit evolution" begin
     p = 0.01
-    depol_channel = Channels.depolarizing_channel(p, [sites[0][1], sites[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [sites[0][1], sites[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,

@@ -11,7 +11,7 @@ using ITensorNetworks:
     vertices,
     gauge_error,
     apply
-using ITensors: ITensors, ITensor, inds, plev
+using ITensors: ITensors, ITensor, inds, plev, findsite
 using OpenNetworks: Channels, NoisyCircuits, ProgressSettings, CustomParsing
 using ProgressMeter
 using SplitApplyCombine: group
@@ -51,7 +51,7 @@ function run_compiled_circuit(
     for (i, gate) in enumerate(circuit)
         #println("Applying gate $j from moment $i")
         indices = [ind for ind in inds(gate) if plev(ind) == 0]
-        channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
+        channel_sites = [findsite(evolved_ψ, ind) for ind in indices]
         if length(channel_sites) == 1
             #println("Applying single qubit gate")
             evolved_ψ[channel_sites[1]] = ITensors.apply(gate, evolved_ψ[channel_sites[1]])

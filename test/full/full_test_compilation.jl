@@ -9,7 +9,8 @@ using OpenNetworks:
     NoisyCircuits,
     NoiseModels,
     CustomParsing,
-    VDMNetworks
+    VDMNetworks,
+    PreBuiltChannels
 using Random
 using LinearAlgebra
 using Graphs
@@ -40,7 +41,7 @@ end;
 
 @testset "Prepare noise for gate" begin
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(p, [sites[0][1], sites[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [sites[0][1], sites[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,
@@ -96,7 +97,7 @@ bell_ρ = VDMNetworks.VDMNetwork(Utils.outer(bell_ψ, bell_ψ), bell_sites, bell
 @testset "Add noise to Bell pair." begin
     ρ = bell_ρ
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(
+    depol_channel = PreBuiltChannels.depolarizing(
         p, [bell_sites[0][1], bell_sites[1][1]], bell_ρ
     )
     noise_instruction = NoiseModels.NoiseInstruction(
@@ -142,7 +143,7 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
     circ = ring_circuit
 
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(p, [sites[0][1], sites[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [sites[0][1], sites[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,
@@ -190,7 +191,7 @@ end;
     ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), s, vs)
 
     p = 0.05
-    depol_channel = Channels.depolarizing_channel(p, [s[0][1], s[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [s[0][1], s[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,

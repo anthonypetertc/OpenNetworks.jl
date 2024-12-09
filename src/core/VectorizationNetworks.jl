@@ -28,7 +28,7 @@ fatsiteind = Vectorization.fatsiteind
 innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
 
-function fatsiteinds(
+function Vectorization.fatsiteinds(
     sites::ITensorNetworks.IndsNetwork{V}
 )::ITensorNetworks.IndsNetwork{V} where {V}
     vsites = deepcopy(sites)
