@@ -17,6 +17,15 @@ using OpenNetworks: VDMNetworks
 
 VDMNetwork = VDMNetworks.VDMNetwork
 
+function findindextype(i::ITensors.Index)::Type
+    return typeof(i)
+end
+
+function findindextype(fatsites::ITensorNetworks.IndsNetwork)::Type
+    firstind = first(fatsites[first(ITensorNetworks.vertices(fatsites))])
+    return findindextype(firstind)
+end
+
 function swapprime!(
     ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...
 )::AbstractITensorNetwork

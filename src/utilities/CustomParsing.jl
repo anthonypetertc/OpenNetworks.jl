@@ -1,13 +1,8 @@
 module CustomParsing
-export parse_circuit, ParsedGate
+export parse_circuit
 
 using JSON
-
-struct ParsedGate
-    name::String
-    qubits::Vector{Int64}
-    params::Vector{Float64}
-end
+using OpenNetworks: Gates.Gate
 
 function typenarrow!(d::Dict{<:Any,<:Any})
     for key in keys(d)
@@ -20,9 +15,9 @@ function typenarrow!(d::Dict{<:Any,<:Any})
     return d
 end
 
-function parse_circuit(circuit_path::String)::Vector{ParsedGate}
+function parse_circuit(circuit_path::String)::Vector{Gate}
     circuit = JSON.parsefile(circuit_path)
-    parsed_circuit = Vector{ParsedGate}()
+    parsed_circuit = Vector{Gate}()
     for gate in circuit
         if !(keys(gate) == Set(["Name", "Qubits", "Params"]))
             throw("Key Error: JSON circuit has incorrect keys.")
@@ -45,7 +40,7 @@ function parse_circuit(circuit_path::String)::Vector{ParsedGate}
             end
             push!(params, param)
         end
-        push!(parsed_circuit, ParsedGate(name, qubits, params))
+        push!(parsed_circuit, Gate(name, qubits, params))
     end
     return parsed_circuit
 end

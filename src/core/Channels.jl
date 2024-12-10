@@ -1,5 +1,5 @@
 module Channels
-export Channel, apply, opdouble
+export Channel, opdouble, Gate
 
 using ITensors
 using ITensorMPS
@@ -48,22 +48,6 @@ function tagstring(T::ITensors.TagSet)::String
     res *= "$(ts[N])"
     return res
 end
-#=
-function find_site(ind::ITensors.Index)
-    #= Given a site index for an ITensor, this function will return the site it corresponds to.=#
-
-    @assert hastags(ind, "Site") "Can't find site: Index has no site."
-    ts = tagstring(tags(ind))
-    site = Vector{Int}()
-    for s in split(ts, ",")
-        if startswith(s, "n=")
-            push!(site, parse(Int, split(s, "=")[end]))
-        end
-    end
-    @assert length(site) == 1 "Can't find site: check that index has exactly one site tag."
-    return site[1]
-end
-=#
 
 function ITensors.findsite(
     sites::Vector{ITensors.Index{Q}}, ind::ITensors.Index{Q}
@@ -249,19 +233,23 @@ struct Channel
     end
 end
 
-function apply(channel::Channel, ρ::MPS; kwargs...)::MPS
+function ITensors.apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     channel_tensor = channel.tensor
     return ITensors.apply(channel_tensor, ρ; kwargs...)
 end
 
-function apply(channel::Channel, ρ::VDMNetwork{V}; kwargs...)::VDMNetwork{V} where {V}
+function ITensors.apply(
+    channel::Channel, ρ::VDMNetwork{V}; kwargs...
+)::VDMNetwork{V} where {V}
     channel_tensor = channel.tensor
     return VDMNetwork(
         ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizedinds
     )
 end
 
-function apply(o::ITensors.ITensor, ρ::VDMNetwork{V}; kwargs...)::VDMNetwork{V} where {V}
+function ITensors.apply(
+    o::ITensors.ITensor, ρ::VDMNetwork{V}; kwargs...
+)::VDMNetwork{V} where {V}
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network; kwargs...), ρ.unvectorizedinds)
 end

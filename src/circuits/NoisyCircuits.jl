@@ -23,8 +23,9 @@ using OpenNetworks:
     VDMNetworks,
     NoiseModels,
     GraphUtils,
-    CustomParsing,
-    ProgressSettings
+    Gates.Gate,
+    ProgressSettings,
+    Utils.findindextype
 using SplitApplyCombine: group
 using ProgressMeter
 
@@ -46,9 +47,7 @@ function Base.show(io::IO, noisycircuit::NoisyCircuit{V}) where {V}
     )
 end
 
-function NoisyCircuit(
-    parsedcircuit::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel
-)
+function NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModel)
     noisycircuit = add_noise_to_circuit(parsedcircuit, noise_model)
     compressedcircuit = absorb_single_qubit_gates(noisycircuit)
     n_gates = length(compressedcircuit)
@@ -59,6 +58,13 @@ function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.I
     compressedcircuit = absorb_single_qubit_gates(channel_list)
     #moments_list, n_gates = compile_into_moments(compressed_circuit, fatsites)
     n_gates = length(compressedcircuit)
+    return NoisyCircuit(compressedcircuit, fatsites, n_gates)
+end
+
+function NoisyCircuit(channel_list::Vector{Channel}, fatsites::Vector{<:ITensors.Index{}})
+    compressedcircuit = absorb_single_qubit_gates(channel_list)
+    n_gates = length(compressedcircuit)
+    fatsites = GraphUtils.linenetwork(fatsites)
     return NoisyCircuit(compressedcircuit, fatsites, n_gates)
 end
 
@@ -120,15 +126,6 @@ function run_circuit(
     ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
     evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizedinds)
     return evolved_ρ
-end
-
-function findindextype(i::ITensors.Index)::Type
-    return typeof(i)
-end
-
-function findindextype(fatsites::ITensorNetworks.IndsNetwork)::Type
-    firstind = first(fatsites[first(ITensorNetworks.vertices(fatsites))])
-    return findindextype(firstind)
 end
 
 function compile_into_moments!(
@@ -302,7 +299,7 @@ function squeeze_single_qubit_gates(
 end
 
 function add_noise_to_circuit(
-    qc::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel{V}
+    qc::Vector{Gate}, noise_model::NoiseModel{V}
 )::Vector{Channel} where {V}
     if (
         GraphUtils.extract_adjacency_graph(qc) !=

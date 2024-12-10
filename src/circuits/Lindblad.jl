@@ -5,7 +5,7 @@ using ITensorMPS
 using ITensorsOpenSystems: ITensorsOpenSystems, Vectorization
 using ITensorNetworks: ITensorNetworks, edges, src, dst, vertices
 using NamedGraphs
-using OpenNetworks: OpenNetworks, Channels, VectorizationNetworks, NoisyCircuits
+using OpenNetworks: OpenNetworks, Channels, VectorizationNetworks, NoisyCircuits, Utils
 Channel = Channels.Channel
 VectorizedDensityMatrix = Vectorization.VectorizedDensityMatrix
 named_grid = NamedGraphs.NamedGraphGenerators.named_grid
@@ -127,7 +127,7 @@ function firstordertrotter(
     sites::ITensorNetworks.IndsNetwork{V},
 )::NoisyCircuits.NoisyCircuit where {V}
     channel_list = Vector{Channels.Channel}()
-    Q = NoisyCircuits.findindextype(sites)
+    Q = Utils.findindextype(sites)
     cache = Dict{Vector{Q},Channels.Channel}()
     for _ in 1:steps
         for v in vertices(sites)
@@ -161,7 +161,7 @@ function secondordertrotter(
     sites::ITensorNetworks.IndsNetwork{V},
 )::NoisyCircuits.NoisyCircuit where {V}
     channel_list = Vector{Channels.Channel}()
-    Q = NoisyCircuits.findindextype(sites)
+    Q = Utils.findindextype(sites)
     cache = Dict{Vector{Q},Channels.Channel}()
     for i in 1:steps
         for v in vertices(sites)

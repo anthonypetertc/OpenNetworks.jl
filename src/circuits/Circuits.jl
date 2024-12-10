@@ -12,15 +12,13 @@ using ITensorNetworks:
     gauge_error,
     apply
 using ITensors: ITensors, ITensor, inds, plev, findsite
-using OpenNetworks: Channels, NoisyCircuits, ProgressSettings, CustomParsing
+using OpenNetworks: Channels, NoisyCircuits, ProgressSettings, Gates.Gate
 using ProgressMeter
 using SplitApplyCombine: group
 
 default_progress_kwargs = ProgressSettings.default_progress_kwargs
 
-function prepare_noiseless_circuit(
-    qc::Vector{CustomParsing.ParsedGate}, sites::ITensorNetworks.IndsNetwork
-)
+function prepare_noiseless_circuit(qc::Vector{Gate}, sites::ITensorNetworks.IndsNetwork)
     gate_list = Vector{ITensor}()
     for gate in qc
         qubits = gate.qubits

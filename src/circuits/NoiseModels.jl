@@ -76,6 +76,16 @@ struct NoiseModel{V}
     fatsites::ITensorNetworks.IndsNetwork{V,Index}
 end
 
+function NoiseModel(
+    noise_instructions::Set{NoiseInstruction},
+    sites::Vector{ITensors.Index{V}},
+    fatsites::Vector{ITensors.Index{V}},
+)::NoiseModel{V} where {V}
+    return NoiseModel(
+        noise_instructions, GraphUtils.linenetwork(sites), Utils.linenetwork(fatsites)
+    )
+end
+
 function Base.show(io::IO, noisemodel::NoiseModel)
     names = [
         noiseinstruction.name_of_instruction for

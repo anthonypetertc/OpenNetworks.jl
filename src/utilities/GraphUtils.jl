@@ -4,14 +4,12 @@ export extract_adjacency_graph, named_ring_graph
 
 using NamedGraphs: NamedGraphs, add_edges!, NamedGraph
 using Graphs
+using ITensors
 using ITensorNetworks
 using JSON
-using OpenNetworks: CustomParsing, OpenNetworks
-ParsedGate = CustomParsing.ParsedGate
+using OpenNetworks: Gates.Gate, OpenNetworks
 
-function extract_adjacency_graph(
-    qc::Vector{OpenNetworks.CustomParsing.ParsedGate}
-)::NamedGraphs.NamedGraph
+function extract_adjacency_graph(qc::Vector{Gate})::NamedGraphs.NamedGraph
     all_qubits = Vector{Int64}()
     for gate in qc
         append!(all_qubits, gate.qubits)
@@ -35,4 +33,24 @@ function named_ring_graph(n::Integer)
     add_edges!(G, [n - 1 => 0])
     return G
 end
+
+function linegraph(sites::Vector{<:ITensors.Index{}})::NamedGraphs.NamedGraph
+    G = NamedGraphs.NamedGraph([i for i in 1:length(sites)])
+    for i in 1:(length(sites) - 1)
+        add_edges!(G, [i => i + 1])
+    end
+    return G
+end
+
+function linenetwork(
+    sites::Vector{<:ITensors.Index{}}, sitetype::String="Qubit"
+)::ITensorNetworks.IndsNetwork
+    G = linegraph(sites)
+    indsnetwork = siteinds(sitetype, G)
+    for (i, site) in enumerate(sites)
+        indsnetwork[i] = [site]
+    end
+    return indsnetwork
+end
+
 end
