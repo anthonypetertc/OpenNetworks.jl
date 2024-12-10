@@ -133,9 +133,7 @@ end
     t = steps * dt
     ψ = ITensorNetwork(v -> "0", square_sites)
     ψ[(1, 1)] = ITensors.apply(op("H", square_sites[(1, 1)]), ψ[(1, 1)])
-    ρ = OpenNetworks.VDMNetworks.VDMNetwork(
-        OpenNetworks.Utils.outer(ψ, ψ), square_sites, square_vsites
-    )
+    ρ = OpenNetworks.VDMNetworks.VDMNetwork(outer(ψ', ψ), square_sites, square_vsites)
 
     L = OpenNetworks.Lindblad.lindbladevolve(H2, A2, t, sites) # Time evolution operator for the exact lindbladian evolution.
     trottercircuit = OpenNetworks.Lindblad.firstordertrotter(H, A, steps, dt, square_vsites) #Trotterized evolution.

@@ -22,7 +22,7 @@ G = GraphUtils.named_ring_graph(N)
 sites = ITensorNetworks.siteinds("Qubit", G)
 vsites = ITensorNetworks.siteinds("QubitVec", G)
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), sites, vsites)
 
 @testset "Prepare Parameters" begin
     @test NoisyCircuits.prepare_params([π / 2], "U") == Dict(:θ => π / 2)
@@ -92,7 +92,7 @@ bell_g = GraphUtils.extract_adjacency_graph(bell_pair_circuit)
 bell_sites = ITensorNetworks.siteinds("Qubit", bell_g)
 bell_vsites = ITensorNetworks.siteinds("QubitVec", bell_g)
 bell_ψ = ITensorNetwork(v -> "0", bell_sites);
-bell_ρ = VDMNetworks.VDMNetwork(Utils.outer(bell_ψ, bell_ψ), bell_sites, bell_vsites)
+bell_ρ = VDMNetworks.VDMNetwork(outer(bell_ψ', bell_ψ), bell_sites, bell_vsites)
 
 @testset "Add noise to Bell pair." begin
     ρ = bell_ρ
@@ -133,7 +133,7 @@ ring_g = GraphUtils.extract_adjacency_graph(ring_circuit)
 ring_sites = ITensorNetworks.siteinds("Qubit", ring_g)
 ring_vsites = ITensorNetworks.siteinds("QubitVec", ring_g)
 ring_ψ = ITensorNetwork(v -> "0", ring_sites);
-ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring_vsites)
+ring_ρ = VDMNetworks.VDMNetwork(outer(ring_ψ', ring_ψ), ring_sites, ring_vsites)
 
 @testset "Tests on ring circuit" begin
     sites = ring_sites
@@ -188,7 +188,7 @@ end;
     vs = ITensorNetworks.siteinds("QubitVec", g)
 
     ψ = ITensorNetwork(v -> "0", s)
-    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), s, vs)
+    ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), s, vs)
 
     p = 0.05
     depol_channel = PreBuiltChannels.depolarizing(p, [s[0][1], s[1][1]], ρ)

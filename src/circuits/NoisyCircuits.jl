@@ -313,7 +313,7 @@ function add_noise_to_circuit(
     sites = noise_model.sites
     vsites = noise_model.fatsites
     ψ = ITensorNetwork(v -> "0", sites)::ITensorNetwork{V}
-    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)::VDMNetwork{V}
+    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ', ψ), sites, vsites)::VDMNetwork{V}
     channel_list = Vector{Channels.Channel}()
     for gate in qc
         qubits = gate.qubits

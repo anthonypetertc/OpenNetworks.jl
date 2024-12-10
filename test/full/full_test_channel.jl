@@ -44,7 +44,7 @@ Tt = [1 0; 0 exp(im * π / 4)]
     vX1 = opdouble(X1)
     vT1 = opdouble(T1)
     @test all(vX1.tensor ≈ kron(Xt, Xt))
-    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
 end;
 @testset "opdouble" begin
     vX1 = opdouble(X1, vrho, sites)
@@ -57,7 +57,7 @@ end;
     @test findsite(vs, inds(vY3)[1]) == 3
     @test all(vZ12.tensor ≈ kron(Zt, Zt))
     @test findsite(vs, inds(vZ12)[1]) == 12
-    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
 end;
 @testset "Channel" begin
     #kraus_maps = sqrt(1 / 4) * [Id1, X1, Y1, Z1]
@@ -119,7 +119,7 @@ Tt = [1 0; 0 exp(im * π / 4)]
     @test findsite(square_rand_vρ, inds(vY1)[1]) == (1, 2)
     @test all(vZ1.tensor ≈ kron(Zt, Zt))
     @test findsite(square_rand_vρ, inds(vZ1)[1]) == (2, 2)
-    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
     @test findsite(square_rand_vρ, inds(vT1)[1]) == (2, 1)
 end;
 
@@ -153,7 +153,7 @@ end;
     end
 
     v2 = VDMNetworks.VDMNetwork(
-        Utils.outer(unvectorized, unvectorized), evolved.unvectorizedinds, square_vsites
+        outer(unvectorized', unvectorized), evolved.unvectorizedinds, square_vsites
     )
 
     norm_const = sqrt(Utils.innerprod(v2, v2) * Utils.innerprod(evolved, evolved))
@@ -200,7 +200,7 @@ end;
             [
                 swapprime(
                     ITensorNetworks.apply(
-                        K, swapprime(ITensorNetworks.apply(conj(K), ρ0), 0, 1)
+                        conj(K), swapprime(ITensorNetworks.apply(K, ρ0), 0, 1)
                     ),
                     0,
                     1,
@@ -234,10 +234,10 @@ composed_channel = Channels.compose(CX_channel, X_channel)
 ψ01 = ITensorNetworks.apply(op("X", square_sites[(1, 2)]), ψ00)
 ψ10 = ITensorNetworks.apply(op("X", square_sites[(1, 1)]), ψ00)
 ψ11 = ITensorNetworks.apply(op("X", square_sites[(1, 1)]), ψ01)
-ρ00 = VDMNetworks.VDMNetwork(Utils.outer(ψ00, ψ00), square_sites, square_vsites)
-ρ01 = VDMNetworks.VDMNetwork(Utils.outer(ψ01, ψ01), square_sites, square_vsites)
-ρ10 = VDMNetworks.VDMNetwork(Utils.outer(ψ10, ψ10), square_sites, square_vsites)
-ρ11 = VDMNetworks.VDMNetwork(Utils.outer(ψ11, ψ11), square_sites, square_vsites)
+ρ00 = VDMNetworks.VDMNetwork(outer(ψ00', ψ00), square_sites, square_vsites)
+ρ01 = VDMNetworks.VDMNetwork(outer(ψ01', ψ01), square_sites, square_vsites)
+ρ10 = VDMNetworks.VDMNetwork(outer(ψ10', ψ10), square_sites, square_vsites)
+ρ11 = VDMNetworks.VDMNetwork(outer(ψ11', ψ11), square_sites, square_vsites)
 
 @testset "Compose two qubit" begin
     @test Utils.innerprod(Channels.apply(composed_channel, ρ00), ρ11) ≈ 1

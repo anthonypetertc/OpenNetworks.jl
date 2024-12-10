@@ -19,7 +19,7 @@ g = GraphUtils.extract_adjacency_graph(qc)
 sites = ITensorNetworks.siteinds("Qubit", g)
 vsites = ITensorNetworks.siteinds("QubitVec", g)
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), sites, vsites)
 
 @testset "Test circuit evolution" begin
     p = 0.01

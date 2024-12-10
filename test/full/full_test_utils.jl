@@ -54,11 +54,11 @@ end;
 
 #Prepare state in all zero state.
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), sites, vsites)
 #Apply X gate to first qubit.
 o = op("X", sites[(1, 1)])
 ϕ = ITensorNetworks.apply(o, ψ)
-σ = VDMNetworks.VDMNetwork(Utils.outer(ϕ, ϕ), sites, vsites)
+σ = VDMNetworks.VDMNetwork(outer(ϕ', ϕ), sites, vsites)
 
 g2 = named_grid((3, 3))
 ψ2 = ITensorNetwork(v -> "0", siteinds("Qubit", g2))
@@ -68,26 +68,21 @@ g2 = named_grid((3, 3))
 end;
 
 @testset "outer" begin
-    o = Utils.outer(ψ, ϕ)
-    @test first(contract(noprime(contract(o ⊗ dag(o'))))) ≈ 0.0
+    o = outer(ψ', ϕ)
+    @test first(contract(o ⊗ dag(o))) ≈ 1.0
     o2 = swapprime(o, 1, 0)
-    @test first(contract(noprime(contract(o ⊗ dag(o2'))))) ≈ 1.0
+    @test first(contract(o ⊗ dag(o2))) ≈ 0.0
     #@test Utils.trace(Utils.swapprime(o ⊗ dag(Utils.swapprime(o, 0, 1)'), 2, 1)) ≈ 0.0
     for tens in o.data_graph.vertex_data
         @test length([ind for ind in inds(tens) if !hastags(ind, "Qubit")]) == 2
     end
-    @test_throws "The two ITensorNetworks must have the same underlying graph." Utils.outer(
-        ψ, ψ2
-    )
-    ϕ1 = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
-    ϕ2 = ITensorNetworks.random_tensornetwork(sites; link_space=χ)
-    @test_throws "The two ITensorNetworks must have the bond indices labelled in the same way." Utils.outer(
-        ϕ1, ϕ2
+    @test_throws "The two ITensorNetworks must have the same underlying graph." outer(
+        ψ', ψ2
     )
 end;
 
 ψ = ITensorNetwork(v -> "0", sites)
-ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), sites, vsites)
 
 @testset "trace_unitary" begin
     unvectorized = deepcopy(ψ)
@@ -105,7 +100,7 @@ end;
         U = ITensor(Array(Q), qubits)
         evolved = Channels.apply(U, evolved)
         unvectorized = ITensorNetworks.apply(U, unvectorized)
-        dm = outer(unvectorized, unvectorized)
+        dm = outer(unvectorized', unvectorized)
         @test Utils.innerprod(evolved, evolved) ≈ 1.0
     end
 end;

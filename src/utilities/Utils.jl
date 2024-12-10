@@ -1,5 +1,5 @@
 module Utils
-export swapprime, swapprime!, innerprod, outer, trace
+export swapprime, swapprime!, innerprod, trace
 
 using ITensors
 using ITensorNetworks:
@@ -94,7 +94,9 @@ function merge_bond_legs(ψ::AbstractITensorNetwork)::AbstractITensorNetwork
     return ITensorNetworks._ITensorNetwork(dg)
 end
 
-function outer(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::AbstractITensorNetwork
+function ITensors.outer(
+    ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork
+)::AbstractITensorNetwork
     #= Purpose: Computes the outer product of two ITensorNetworks.
     Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
             ϕ (AbstractITensorNetwork) - Second ITensorNetwork.
@@ -102,14 +104,7 @@ function outer(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Abstract
     if !(ψ.data_graph.underlying_graph == ϕ.data_graph.underlying_graph)
         throw("The two ITensorNetworks must have the same underlying graph.")
     end
-    for key in keys(ψ.data_graph.vertex_data)
-        if !(Set(inds(ψ[key])) == Set(inds(ϕ[key])))
-            throw(
-                "The two ITensorNetworks must have the bond indices labelled in the same way.",
-            )
-        end
-    end
-    ψϕ = ψ ⊗ prime(dag(ϕ))
+    ψϕ = ψ ⊗ dag(ϕ)
     return merge_bond_legs(compress_underlying_graph(ψϕ, ψ))
 end
 

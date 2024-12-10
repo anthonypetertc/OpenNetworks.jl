@@ -24,7 +24,6 @@ vectorizer_output = Vectorization.vectorizer_output
 basespace = Vectorization.basespace
 fatsiteind = Vectorization.fatsiteind
 
-#outer = Utils.outer
 innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
 

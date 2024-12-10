@@ -4,7 +4,8 @@ export Channel, apply, opdouble
 using ITensors
 using ITensorMPS
 import ITensorsOpenSystems: Vectorization, Vectorization.fatsiteinds
-using ITensorNetworks: AbstractITensorNetwork, ITensorNetwork, ITensorNetworks, IndsNetwork
+using ITensorNetworks:
+    AbstractITensorNetwork, ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
 using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
 using NamedGraphs: vertices
 
@@ -108,13 +109,15 @@ function opdouble(o::ITensor)::ITensor
     for (ind, fatind) in zip(indices, fatindices)
         spacename = basespace(fatind)
         @assert hastags(ind, spacename)
-        o *= delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= delta(addtags(ITensors.dag(ind), "dag"), vectorizer_input(spacename)')
+        o *= delta(ITensors.dag(ind), vectorizer_input(spacename)')
+        o *= delta(
+            addtags(ITensors.dag(ind), "dag"), ITensors.dag(vectorizer_input(spacename))
+        )
         o *= vectorizer(spacename)
         o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), fatind)
-        o *= ITensors.delta(ITensors.dag(ind)', ITensors.dag(vectorizer_input(spacename)))
+        o *= ITensors.delta(ITensors.dag(ind)', vectorizer_input(spacename)')
         o *= ITensors.delta(
-            addtags(ITensors.dag(ind)', "dag"), vectorizer_input(spacename)'
+            addtags(ITensors.dag(ind)', "dag"), ITensors.dag(vectorizer_input(spacename))
         )
         o *= vectorizer(spacename)
         o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), fatind')
@@ -122,112 +125,45 @@ function opdouble(o::ITensor)::ITensor
     return o
 end
 
-function opdouble(o::ITensor, rho::MPS, sites::Vector{<:ITensors.Index{}})::ITensor
-    #=Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.=#
-
-    inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
-    vs = ITensors.siteinds(rho)
-    o_dag = addtags(dag(o), "dag")
-    o *= o_dag
-    site_list = Vector{Int}()
-    for ind in inds
-        site = findsite(sites, ind)
-        push!(site_list, site)
-        vinds = [vind for vind in ITensors.inds(rho[site]) if hastags(vind, "Site")]
-        @assert length(vinds) == 1 "Tensors of a vectorized MPS should have exactly one physical leg."
-        vind = vinds[1]
-        spacename = basespace(vind)
-        @assert hastags(ind, spacename) "Operator must have the same site-type as vectorized MPS."
-
-        o *= ITensors.delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(addtags(ITensors.dag(ind), "dag"), vectorizer_input(spacename)')
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind)
-
-        o *= ITensors.delta(ITensors.dag(ind)', ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(
-            addtags(ITensors.dag(ind)', "dag"), vectorizer_input(spacename)'
-        )
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind')
+function opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
+    od = opdouble(o)
+    oldfatinds = inds(od; plev=0)
+    for (i, ind) in enumerate(oldfatinds)
+        newfatind = fatinds[i]
+        @assert hastags(newfatind, tags(ind))
+        od *= delta(ind, newfatind)
+        od *= delta(ind', newfatind')
     end
-    return o
+    return od
 end
 
 function opdouble(
     o::ITensor,
     rho::Vectorization.VectorizedDensityMatrix,
-    unvectorizedsites::Vector{<:ITensors.Index{}},
-)::ITensor
-    #= Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.=#
-
-    inds = [ind for ind in ITensors.inds(o) if plev(ind) == 0]
+    unvectorizedsites::Vector{ITensors.Index{Q}},
+)::ITensor where {Q}
+    indices = collect(inds(o; plev=0))
     vs = ITensors.siteinds(rho)
     @assert length(vs) == length(unvectorizedsites)
-    o_dag = addtags(dag(o), "dag")
-    o *= o_dag
-    site_list = Vector{Int}()
-    for ind in inds
+    fatinds = Vector{Index{Q}}()
+    for ind in indices
         site = findsite(unvectorizedsites, ind)
-        push!(site_list, site)
-        vinds = [vind for vind in ITensors.inds(rho[site]) if hastags(vind, "Site")]
-        @assert length(vinds) == 1 "Tensors of a vectorized MPS should have exactly one physical leg."
-        vind = vinds[1]
-        spacename = basespace(vind)
-        @assert hastags(ind, spacename) "Operator must have the same site-type as vectorized MPS."
-
-        o *= ITensors.delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(addtags(ITensors.dag(ind), "dag"), vectorizer_input(spacename)')
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind)
-
-        o *= ITensors.delta(ITensors.dag(ind)', ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(
-            addtags(ITensors.dag(ind)', "dag"), vectorizer_input(spacename)'
-        )
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind')
+        push!(fatinds, vs[site])
     end
-    return o
+    return opdouble(o, fatinds)
 end
 
 function opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor where {V}
-    #= Purpose: Turns an ITensor, an operator O on the underlying Hilbert space returns an opertor O†⊗O acting on the doubled Hilbert space.
-    Inputs: o (ITensor) - Operator on underlying Hilbert Space.
-            ρ (ITensorNetwork) - Density Matrix of the system.
-    Returns: ITensor - Operator acting on the doubled Hilbert space. =#
-    ψ = ITensorNetwork(v -> "0", ρ.unvectorizedinds)
-    ρ = ρ.network
-
-    inds = [ind for ind in ITensors.inds(o) if ITensors.plev(ind) == 0]
+    indices = collect(inds(o; plev=0))
     vs = siteinds(ρ)
-    o_dag = ITensors.addtags(dag(o), "dag")
-    o *= o_dag
-    site_list = Vector{V}()
-    for ind in inds
+    firstind = first(vs[first(vertices(vs))])
+    ψ = ITensorNetwork(v -> "0", ρ.unvectorizedinds)
+    fatinds = Vector{typeof(firstind)}()
+    for ind in indices
         site = findsite(ψ, ind)
-        push!(site_list, site)
-        vinds = [vind for vind in ITensors.inds(ρ[site]) if ITensors.hastags(vind, "Site")]
-        @assert length(vinds) == 1 "Tensors of a vectorized density matrix should have exactly one physical leg."
-        vind = vinds[1]
-        spacename = basespace(vind)
-        @assert ITensors.hastags(ind, spacename) "Operator must have the same site-type as vectorized MPS."
-
-        o *= ITensors.delta(ITensors.dag(ind), ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(
-            ITensors.addtags(ITensors.dag(ind), "dag"), vectorizer_input(spacename)'
-        )
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind)
-
-        o *= ITensors.delta(ITensors.dag(ind)', ITensors.dag(vectorizer_input(spacename)))
-        o *= ITensors.delta(
-            ITensors.addtags(ITensors.dag(ind)', "dag"), vectorizer_input(spacename)'
-        )
-        o *= vectorizer(spacename)
-        o *= ITensors.delta(ITensors.dag(vectorizer_output(spacename)), vind')
+        push!(fatinds, first(vs[site]))
     end
-    return o
+    return opdouble(o, fatinds)
 end
 
 function _krauscheck(kraus_maps_true::Vector{ITensor})::Bool

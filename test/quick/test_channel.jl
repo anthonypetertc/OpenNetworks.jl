@@ -30,7 +30,7 @@ Tt = [1 0; 0 exp(im * π / 4)]
     vX1 = opdouble(X)
     vT1 = opdouble(T)
     @test all(vX1.tensor ≈ kron(Xt, Xt))
-    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
 end;
 
 @testset "opdouble" begin
@@ -38,7 +38,7 @@ end;
     vT1 = opdouble(T, square_rand_vρ)
     @test all(vX1.tensor ≈ kron(Xt, Xt))
     @test findsite(square_rand_vρ, inds(vX1)[1]) == (1, 1)
-    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
     @test findsite(square_rand_vρ, inds(vT1)[1]) == (2, 1)
 end;
 
