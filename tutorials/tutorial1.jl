@@ -17,7 +17,7 @@ begin
         OpenNetworks,
         VDMNetworks.VDMNetwork,
         Lindblad.trotterize,
-        NoisyCircuits.run_circuit,
+        Evolution.run_circuit,
         VectorizationNetworks.expect
     #using ITensorsOpenSystems
     #using OpenNetworks

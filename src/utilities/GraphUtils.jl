@@ -1,13 +1,13 @@
 module GraphUtils
 
-export extract_adjacency_graph, named_ring_graph
+export extract_adjacency_graph, named_ring_graph, linenetwork, islinenetwork
 
 using NamedGraphs: NamedGraphs, add_edges!, NamedGraph
 using Graphs
 using ITensors
-using ITensorNetworks
+using ITensorNetworks: IndsNetwork, vertices
 using JSON
-using OpenNetworks: Gates.Gate, OpenNetworks
+using OpenNetworks: Gates.Gate, OpenNetworks, Utils.findindextype
 
 function extract_adjacency_graph(qc::Vector{Gate})::NamedGraphs.NamedGraph
     all_qubits = Vector{Int64}()
@@ -44,13 +44,23 @@ end
 
 function linenetwork(
     sites::Vector{<:ITensors.Index{}}, sitetype::String="Qubit"
-)::ITensorNetworks.IndsNetwork
+)::IndsNetwork
     G = linegraph(sites)
     indsnetwork = siteinds(sitetype, G)
     for (i, site) in enumerate(sites)
         indsnetwork[i] = [site]
     end
     return indsnetwork
+end
+
+function islinenetwork(sites::IndsNetwork)::Bool
+    T = findindextype(sites)
+    siteindices = Vector{T}()
+    for v in vertices(sites)
+        push!(siteindices, first(sites[v]))
+    end
+    lg = linegraph(siteindices)
+    return sites.data_graph.underlying_graph == lg
 end
 
 end

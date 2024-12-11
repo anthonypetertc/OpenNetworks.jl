@@ -233,9 +233,19 @@ struct Channel
     end
 end
 
+function Base.show(io::IO, channel::Channel)
+    return println(io, "Channel $(channel.name) with indices $(inds(channel.tensor))")
+end
+
 function ITensors.apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     channel_tensor = channel.tensor
     return ITensors.apply(channel_tensor, ρ; kwargs...)
+end
+
+function ITensors.apply(
+    channel::Channel, ρ::VectorizedDensityMatrix; kwargs...
+)::VectorizedDensityMatrix
+    return ITensors.apply(channel.tensor, ρ; kwargs...)
 end
 
 function ITensors.apply(
@@ -245,6 +255,18 @@ function ITensors.apply(
     return VDMNetwork(
         ITensorNetworks.apply(channel_tensor, ρ.network; kwargs...), ρ.unvectorizedinds
     )
+end
+
+function ITensors.apply(channels::Vector{Channel}, ρ::VDMNetwork{V}; kwargs...) where {V}
+    channels_tensor = [channel.tensor for channel in channels]
+    return VDMNetwork(
+        ITensorNetworks.apply(channels_tensor, ρ.network; kwargs...), ρ.unvectorizedinds
+    )
+end
+
+function ITensors.apply(channels::Vector{Channel}, ρ::VectorizedDensityMatrix; kwargs...)
+    channels_tensor = [channel.tensor for channel in channels]
+    return apply(channels_tensor, ρ; kwargs...)
 end
 
 function ITensors.apply(

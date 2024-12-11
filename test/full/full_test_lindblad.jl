@@ -1,7 +1,8 @@
 using ITensors
 using ITensorMPS
-using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix
-using OpenNetworks: Lindblad, Channels, PreBuiltChannels
+using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix, Vectorization.fatsiteinds
+using OpenNetworks:
+    Lindblad, Channels, PreBuiltChannels, Evolution.run_circuit, Lindblad.trotterize
 using Test
 
 @testset "test convertprodop" begin
@@ -171,4 +172,47 @@ end
             first(ITensorNetworks.contract(dag(rho4), rho4)),
         )
     @test isapprox(overlap, 1; rtol=dt)
+end
+
+@testset "tebd" begin
+    n_sites = 4
+    s = siteinds("Qubit", n_sites)
+    fs = fatsiteinds(s)
+    ψ = productMPS(s, "0")
+    ρ = VectorizedDensityMatrix(outer(ψ', ψ), fs)
+
+    h = 0.1
+    D = 0.2
+    yin = 0.3
+    yout = 0.3
+    ydp = 0.04
+
+    H = OpSum()
+    for i in 1:(n_sites - 1)
+        H += 1, "X", i, "X", i + 1 # XX term
+        H += 1, "Y", i, "Y", i + 1 # YY term
+        H += D, "Z", i, "Z", i + 1 # ZZ term
+    end
+    for i in 1:n_sites
+        H += h, "X", i
+    end
+
+    A = fill(OpSum(), 1)
+    for i in 1:n_sites
+        A[1] += sqrt(ydp), "Z", i
+    end
+
+    steps = 100
+    Dt = 0.01
+
+    noisycircuit = trotterize(H, A, steps, Dt, fs; order=2)
+    ρ2 = run_circuit(ρ, noisycircuit)
+
+    # Now by exact diagonalization.
+    L = OpenNetworks.Lindblad.lindbladevolve(H, A, Dt * steps, fs)
+    ρ3 = ITensors.apply(L, ρ) # Exact evolution.
+
+    overlap = inner(ρ2, ρ3) / sqrt(inner(ρ2, ρ2) * inner(ρ3, ρ3))
+    overlap = overlap.re
+    @test isapprox(overlap, 1; rtol=0.0001) #should be correct up to Trotter errors.
 end

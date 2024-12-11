@@ -2,13 +2,18 @@ module Lindblad
 export lindbladevolve, trotterize
 using ITensors
 using ITensorMPS
-using ITensorsOpenSystems: ITensorsOpenSystems, Vectorization
+using ITensorsOpenSystems:
+    ITensorsOpenSystems, Vectorization, Vectorization.VectorizedDensityMatrix
 using ITensorNetworks: ITensorNetworks, edges, src, dst, vertices
-using NamedGraphs
-using OpenNetworks: OpenNetworks, Channels, VectorizationNetworks, NoisyCircuits, Utils
-Channel = Channels.Channel
-VectorizedDensityMatrix = Vectorization.VectorizedDensityMatrix
-named_grid = NamedGraphs.NamedGraphGenerators.named_grid
+using NamedGraphs: NamedGraphGenerators.named_grid
+using OpenNetworks:
+    OpenNetworks,
+    Channels,
+    VectorizationNetworks,
+    NoisyCircuits,
+    Utils,
+    GraphUtils.linenetwork,
+    Channels.Channel
 
 function lindbladevolve(
     H::Sum, A::Vector{<:Sum}, Δt::Float64, fatsites::Vector{<:Index}, name::String="L"
@@ -231,6 +236,17 @@ function trotterize(
     else
         throw("Higher order Suzuki-Trotter not implemented! order must be 2 or 1.")
     end
+end
+
+function trotterize(
+    H::Sum,
+    A::Vector{<:Sum},
+    steps::Int64,
+    Δt::Float64,
+    sites::Vector{<:ITensors.Index{}};
+    order::Int64=2,
+)::NoisyCircuits.NoisyCircuit
+    return trotterize(H, A, steps, Δt, linenetwork(sites); order=order)
 end
 
 end #module

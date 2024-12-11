@@ -17,5 +17,6 @@ include("circuits/ProgressSettings.jl")
 include("circuits/NoisyCircuits.jl")
 include("circuits/Circuits.jl")
 include("circuits/Lindblad.jl")
+include("circuits/Evolution.jl")
 
 end
