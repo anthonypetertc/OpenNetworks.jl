@@ -16,7 +16,7 @@ begin
     using OpenNetworks:
         OpenNetworks,
         CustomParsing.parse_circuit,
-        CustomParsing.ParsedGate,
+        Gates.Gate,
         GraphUtils.extract_adjacency_graph,
         PreBuiltChannels.depolarizing,
         PreBuiltChannels.dephasing,
@@ -57,8 +57,8 @@ Alternatively, it is also possible to build the circuit directly, by specifying 
 
 # ╔═╡ 33f07f5f-01b7-420a-9d6b-65c67ae5a6cc
 begin
-    H1 = ParsedGate("H", [1], [])
-    CX = ParsedGate("CX", [1, 2], [])
+    H1 = Gate("H", [1], [])
+    CX = Gate("CX", [1, 2], [])
     qc = [H1, CX]
     two_qubit_graph = extract_adjacency_graph(qc)
     sites = siteinds("Qubit", two_qubit_graph)

@@ -11,14 +11,10 @@ begin
     Pkg.activate(".")
     using ITensors
     using ITensorNetworks: ITensorNetworks, edges, vertices, src, dst, ITensorNetwork
-    using ITensorsOpenSystems
+    using ITensorsOpenSystems: Vectorization.fatsiteinds
     using NamedGraphs
     using OpenNetworks:
-        OpenNetworks,
-        VDMNetworks.VDMNetwork,
-        Lindblad.trotterize,
-        Evolution.run_circuit,
-        VectorizationNetworks.expect
+        OpenNetworks, VDMNetworks.VDMNetwork, Lindblad.trotterize, Evolution.run_circuit
     #using ITensorsOpenSystems
     #using OpenNetworks
 end
@@ -57,7 +53,7 @@ The first step, is to build a named graph with the appropriate connectivity, and
 begin
     g = NamedGraphs.NamedGraphGenerators.named_grid((2, 2))
     sites = siteinds("Qubit", g)
-    fatsites = OpenNetworks.VectorizationNetworks.fatsiteinds(sites)
+    fatsites = fatsiteinds(sites)
 end
 
 # ╔═╡ c1fa6831-2895-42e3-ad63-07785c885b72
@@ -108,7 +104,7 @@ With this defined, we want to construct an initial state (density matrix) to evo
 # ╔═╡ 246f44bd-1712-4434-bf06-909e6d243cf9
 begin
     ψ = ITensorNetwork(v -> "0", sites) #Prepare the all 0 state
-    ρ = VDMNetwork(OpenNetworks.Utils.outer(ψ, ψ), sites, fatsites) #Vectorized density matrix network.
+    ρ = VDMNetwork(outer(ψ', ψ), sites, fatsites) #Vectorized density matrix network.
 end
 
 # ╔═╡ 96add787-4157-4d59-8ed1-42565acaf16e
@@ -147,6 +143,7 @@ begin
 
     ρevolved = run_circuit(ρ, circuit; cache_update_kwargs, apply_kwargs)
     results = expect("Z", ρevolved; alg="bp") #Compute Z expectation values.
+    @show results
 end
 
 # ╔═╡ Cell order:

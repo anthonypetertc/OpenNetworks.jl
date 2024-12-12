@@ -29,7 +29,8 @@ using OpenNetworks:
     Channels.Channel,
     GraphUtils.islinenetwork,
     NoisyCircuits.NoisyCircuit,
-    NoisyCircuits.compile_into_moments
+    NoisyCircuits.compile_into_moments,
+    Utils.findsite
 using SplitApplyCombine: group
 using ProgressMeter
 
@@ -59,7 +60,7 @@ function run_circuit(
     p = Progress(noisy_circuit.n_gates; progress_kwargs...)
     for (j, gate) in enumerate(noisy_circuit.channel_list)
         #println("Applying gate $j from moment $i")
-        indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
+        indices = collect(inds(gate.tensor; plev=0))
         channel_sites = [findsite(evolved_ψ, ind) for ind in indices]
         if length(channel_sites) == 1
             #println("Applying single qubit gate")
