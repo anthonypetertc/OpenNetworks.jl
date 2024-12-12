@@ -111,7 +111,7 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     idn = idnetwork(ψ)
     new_network = apply(op, idn)
     new_op = VDMNetworks.VDMNetwork(new_network, ρ.unvectorizedinds, siteinds(ρ))
-    return inner(ρ.network, new_op.network; kwargs...)
+    return inner(ρ.network, new_op.network; kwargs...).re
 end
 
 function ITensorNetworks.vertices(ρ::VDMNetwork)

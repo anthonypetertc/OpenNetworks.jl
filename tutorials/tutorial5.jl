@@ -101,17 +101,17 @@ end
 # ╔═╡ 49fd7a8c-1f9d-4afa-bfe3-3f211c16638f
 begin
     Dt = 0.1
-    steps = 100
+    steps = 5
     circuit = trotterize(H, A, steps, Dt, fs; order=2) #Second order trotter decompositon of the circuit.
 end
 
 # ╔═╡ 688b5f99-3084-412d-8a79-9a40cddf3bab
 begin
     cache_update_kwargs = Dict(:maxiter => 12, :tol => 1e-6)
-    apply_kwargs = Dict(:maxdim => 20, :cutoff => 1e-14)
-    regauge_frequency = 2000
-    ρevolved = run_circuit(ρ, circuit, regauge_frequency; cache_update_kwargs, apply_kwargs)
+    apply_kwargs = Dict(:maxdim => 16, :cutoff => 1e-14)
+    ρevolved = run_circuit(ρ, circuit; cache_update_kwargs, apply_kwargs)
     results = expect("Z", ρevolved; alg="bp")
+    @show results
 end
 
 # ╔═╡ Cell order:
