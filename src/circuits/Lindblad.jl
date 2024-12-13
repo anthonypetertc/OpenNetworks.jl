@@ -1,14 +1,19 @@
 module Lindblad
-export lindbladevolve, trotterizedlindblad
+export lindbladevolve, trotterize
 using ITensors
 using ITensorMPS
-using ITensorsOpenSystems: ITensorsOpenSystems, Vectorization
+using ITensorsOpenSystems:
+    ITensorsOpenSystems, Vectorization, Vectorization.VectorizedDensityMatrix
 using ITensorNetworks: ITensorNetworks, edges, src, dst, vertices
-using NamedGraphs
-using OpenNetworks: OpenNetworks, Channels, VectorizationNetworks, NoisyCircuits
-Channel = Channels.Channel
-VectorizedDensityMatrix = Vectorization.VectorizedDensityMatrix
-named_grid = NamedGraphs.NamedGraphGenerators.named_grid
+using NamedGraphs: NamedGraphGenerators.named_grid
+using OpenNetworks:
+    OpenNetworks,
+    Channels,
+    VectorizationNetworks,
+    NoisyCircuits,
+    Utils,
+    GraphUtils.linenetwork,
+    Channels.Channel
 
 function lindbladevolve(
     H::Sum, A::Vector{<:Sum}, Δt::Float64, fatsites::Vector{<:Index}, name::String="L"
@@ -127,7 +132,7 @@ function firstordertrotter(
     sites::ITensorNetworks.IndsNetwork{V},
 )::NoisyCircuits.NoisyCircuit where {V}
     channel_list = Vector{Channels.Channel}()
-    Q = NoisyCircuits.findindextype(sites)
+    Q = Utils.findindextype(sites)
     cache = Dict{Vector{Q},Channels.Channel}()
     for _ in 1:steps
         for v in vertices(sites)
@@ -161,7 +166,7 @@ function secondordertrotter(
     sites::ITensorNetworks.IndsNetwork{V},
 )::NoisyCircuits.NoisyCircuit where {V}
     channel_list = Vector{Channels.Channel}()
-    Q = NoisyCircuits.findindextype(sites)
+    Q = Utils.findindextype(sites)
     cache = Dict{Vector{Q},Channels.Channel}()
     for i in 1:steps
         for v in vertices(sites)
@@ -214,6 +219,34 @@ function secondordertrotter(
         end
     end
     return NoisyCircuits.NoisyCircuit(channel_list, sites)
+end
+
+function trotterize(
+    H::Sum,
+    A::Vector{<:Sum},
+    steps::Int64,
+    Δt::Float64,
+    sites::ITensorNetworks.IndsNetwork{V};
+    order::Int64=2,
+)::NoisyCircuits.NoisyCircuit where {V}
+    if order == 1
+        return firstordertrotter(H, A, steps, Δt, sites)
+    elseif order == 2
+        return secondordertrotter(H, A, steps, Δt, sites)
+    else
+        throw("Higher order Suzuki-Trotter not implemented! order must be 2 or 1.")
+    end
+end
+
+function trotterize(
+    H::Sum,
+    A::Vector{<:Sum},
+    steps::Int64,
+    Δt::Float64,
+    sites::Vector{<:ITensors.Index{}};
+    order::Int64=2,
+)::NoisyCircuits.NoisyCircuit
+    return trotterize(H, A, steps, Δt, linenetwork(sites); order=order)
 end
 
 end #module

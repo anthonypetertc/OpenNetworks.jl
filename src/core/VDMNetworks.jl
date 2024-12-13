@@ -14,6 +14,10 @@ struct VDMNetwork{V}
     unvectorizedinds::IndsNetwork{V,Index}
 end
 
+function Base.show(io::IO, ρ::VDMNetwork)
+    return println(io, "VDMNetwork with underlying ITensorNetwork: $(ρ.network)")
+end
+
 function VDMNetwork(
     ρ::ITensorNetwork{V}, sites::IndsNetwork{V,Index}, fatsites::IndsNetwork{V,Index}
 ) where {V}

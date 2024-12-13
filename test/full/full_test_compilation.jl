@@ -9,7 +9,8 @@ using OpenNetworks:
     NoisyCircuits,
     NoiseModels,
     CustomParsing,
-    VDMNetworks
+    VDMNetworks,
+    PreBuiltChannels
 using Random
 using LinearAlgebra
 using Graphs
@@ -21,7 +22,7 @@ G = GraphUtils.named_ring_graph(N)
 sites = ITensorNetworks.siteinds("Qubit", G)
 vsites = ITensorNetworks.siteinds("QubitVec", G)
 ψ = ITensorNetwork(v -> "0", sites);
-ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)
+ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), sites, vsites)
 
 @testset "Prepare Parameters" begin
     @test NoisyCircuits.prepare_params([π / 2], "U") == Dict(:θ => π / 2)
@@ -40,7 +41,7 @@ end;
 
 @testset "Prepare noise for gate" begin
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(p, [sites[0][1], sites[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [sites[0][1], sites[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,
@@ -91,12 +92,12 @@ bell_g = GraphUtils.extract_adjacency_graph(bell_pair_circuit)
 bell_sites = ITensorNetworks.siteinds("Qubit", bell_g)
 bell_vsites = ITensorNetworks.siteinds("QubitVec", bell_g)
 bell_ψ = ITensorNetwork(v -> "0", bell_sites);
-bell_ρ = VDMNetworks.VDMNetwork(Utils.outer(bell_ψ, bell_ψ), bell_sites, bell_vsites)
+bell_ρ = VDMNetworks.VDMNetwork(outer(bell_ψ', bell_ψ), bell_sites, bell_vsites)
 
 @testset "Add noise to Bell pair." begin
     ρ = bell_ρ
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(
+    depol_channel = PreBuiltChannels.depolarizing(
         p, [bell_sites[0][1], bell_sites[1][1]], bell_ρ
     )
     noise_instruction = NoiseModels.NoiseInstruction(
@@ -132,7 +133,7 @@ ring_g = GraphUtils.extract_adjacency_graph(ring_circuit)
 ring_sites = ITensorNetworks.siteinds("Qubit", ring_g)
 ring_vsites = ITensorNetworks.siteinds("QubitVec", ring_g)
 ring_ψ = ITensorNetwork(v -> "0", ring_sites);
-ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring_vsites)
+ring_ρ = VDMNetworks.VDMNetwork(outer(ring_ψ', ring_ψ), ring_sites, ring_vsites)
 
 @testset "Tests on ring circuit" begin
     sites = ring_sites
@@ -142,7 +143,7 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
     circ = ring_circuit
 
     p = 0.1
-    depol_channel = Channels.depolarizing_channel(p, [sites[0][1], sites[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [sites[0][1], sites[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,
@@ -153,9 +154,6 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
     noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites)
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circ, noise_model)
     compressed_noisy_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
-    #=   compiled_noisy_circuit, n_gates = NoisyCircuits.compile_into_moments(
-           compressed_noisy_circuit, vsites
-       ) =#
     circuit_object = NoisyCircuits.NoisyCircuit(circ, noise_model)
 
     @testset "Noise applied to correct qubits." begin
@@ -172,16 +170,7 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
             @test length(inds(gate.tensor)) == 4
         end
     end
-    #=
-        @testset "Compilation into moments" begin
-            @test length(compiled_noisy_circuit) == 12
-            for (i, moment) in enumerate(compiled_noisy_circuit)
-                @test length(moment) == 1
-                @test moment[1].tensor == compressed_noisy_circuit[i].tensor
-                @test moment[1].name == compressed_noisy_circuit[i].name
-            end
-        end
-    =#
+
     @testset "Noisy Circuit object" begin
         @test circuit_object.fatsites == noise_model.fatsites
         for (j, gate) in enumerate(circuit_object.channel_list)
@@ -191,7 +180,6 @@ ring_ρ = VDMNetworks.VDMNetwork(Utils.outer(ring_ψ, ring_ψ), ring_sites, ring
     end
 end;
 
-#=
 @testset "Compilation into moments, small circuit." begin
     circuit = CustomParsing.parse_circuit("example_circuits/test_compile_circuit.json")
 
@@ -200,10 +188,10 @@ end;
     vs = ITensorNetworks.siteinds("QubitVec", g)
 
     ψ = ITensorNetwork(v -> "0", s)
-    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), s, vs)
+    ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), s, vs)
 
     p = 0.05
-    depol_channel = Channels.depolarizing_channel(p, [s[0][1], s[1][1]], ρ)
+    depol_channel = PreBuiltChannels.depolarizing(p, [s[0][1], s[1][1]], ρ)
     noise_instruction = NoiseModels.NoiseInstruction(
         "depolarizing",
         depol_channel,
@@ -216,11 +204,13 @@ end;
     noisy_circuit = NoisyCircuits.add_noise_to_circuit(circuit, noise_model)
     compressed_circuit = NoisyCircuits.absorb_single_qubit_gates(noisy_circuit)
     moments_list1, _ = NoisyCircuits.compile_into_moments(
-        compressed_circuit, noise_model.vectorizedsiteinds
+        compressed_circuit, noise_model.fatsites
     )
+    noisy_circuit = NoisyCircuits.NoisyCircuit(circuit, noise_model)
+    moments_list2, _ = NoisyCircuits.compile_into_moments(noisy_circuit)
 
     @test [length(moment) for moment in moments_list1] == [2, 3, 3, 4, 3, 3]
+    @test [length(moment) for moment in moments_list2] == [2, 3, 3, 4, 3, 3]
 
     # I have checked by hand that this circuit should have moments of length (2, 3, 3, 4, 3, 3)
 end;
-=#

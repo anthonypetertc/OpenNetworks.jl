@@ -1,17 +1,15 @@
 using Test
 using ITensorsOpenSystems
 using ITensors
-using OpenNetworks: Utils, Channels
+using OpenNetworks: Utils, Channels, PreBuiltChannels.depolarizing
 using Random
 using LinearAlgebra
 using Graphs
 using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
 
-depolarizing_channel = Channels.depolarizing_channel
 opdouble = Channels.opdouble
 apply = Channels.apply
 Channel = Channels.Channel
-find_site = Channels.find_site
 
 swapprime = Utils.swapprime
 
@@ -29,17 +27,44 @@ T = op("T", square_sites[(2, 1)])
 Tt = [1 0; 0 exp(im * π / 4)]
 
 @testset "opdouble" begin
+    vX1 = opdouble(X)
+    vT1 = opdouble(T)
+    @test all(vX1.tensor ≈ kron(Xt, Xt))
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
+end;
+
+@testset "opdouble" begin
     vX1 = opdouble(X, square_rand_vρ)
     vT1 = opdouble(T, square_rand_vρ)
     @test all(vX1.tensor ≈ kron(Xt, Xt))
-    @test find_site(inds(vX1)[1], square_rand_vρ) == (1, 1)
-    @test all(vT1.tensor ≈ kron(Tt, conj(Tt)))
-    @test find_site(inds(vT1)[1], square_rand_vρ) == (2, 1)
+    @test findsite(square_rand_vρ, inds(vX1)[1]) == (1, 1)
+    @test all(vT1.tensor ≈ kron(conj(Tt), Tt))
+    @test findsite(square_rand_vρ, inds(vT1)[1]) == (2, 1)
 end;
 
 @testset "Channel" begin
     #kraus_maps = sqrt(1 / 4) * [Id1, X1, Y1, Z1]
-    max_depol = depolarizing_channel(1, [square_sites[(2, 2)]], square_rand_vρ)
+    max_depol = depolarizing(1, [square_sites[(2, 2)]], square_rand_vρ)
+    max_depol2 = depolarizing(1, square_sites[(2, 2)])
+    max_depol_t =
+        (1 / 4) * (
+            kron(Idt, conj(Idt)) +
+            kron(Xt, conj(Xt)) +
+            kron(Yt, conj(Yt)) +
+            kron(Zt, conj(Zt))
+        )
+    @test all(max_depol_t ≈ max_depol.tensor.tensor)
+    @test all(max_depol_t ≈ max_depol2.tensor.tensor)
+    #Would be good to test the two qubit version as well.
+end;
+
+@testset "Channel" begin
+    Id1 = op("Id", square_sites[(1, 1)])
+    X1 = op("X", square_sites[(1, 1)])
+    Z1 = op("Z", square_sites[(1, 1)])
+    Y1 = op("Y", square_sites[(1, 1)])
+    kraus_maps = sqrt(1 / 4) * [Id1, X1, Y1, Z1]
+    max_depol = Channels.Channel("depol", kraus_maps)
     max_depol_t =
         (1 / 4) * (
             kron(Idt, conj(Idt)) +

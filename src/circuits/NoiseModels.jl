@@ -1,10 +1,10 @@
 module NoiseModels
 export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 
-using ITensors: ITensors, Index, plev, inds
+using ITensors: ITensors, Index, plev, inds, tags
 using ITensorNetworks
 using ITensorsOpenSystems
-using OpenNetworks: Channels, Utils, VectorizationNetworks
+using OpenNetworks: Channels, Utils, VectorizationNetworks, Channels.tagstring
 
 struct NoiseInstruction
     name_of_instruction::String
@@ -43,6 +43,17 @@ struct NoiseInstruction
     end
 end
 
+function Base.show(io::IO, noiseinstruction::NoiseInstruction)
+    return println(
+        io,
+        "NoiseInstruction,
+name: $(noiseinstruction.name_of_instruction),
+following gates: $(noiseinstruction.name_of_gates)
+acting on qubits:",
+        tagstring.(tags.(noiseinstruction.qubits_noise_applies_to)),
+    )
+end
+
 function prepare_noise_for_gate(
     noise_instruction::NoiseInstruction, Qubits::Vector{<:ITensors.Index}
 )::Channels.Channel
@@ -64,4 +75,22 @@ struct NoiseModel{V}
     sites::ITensorNetworks.IndsNetwork{V,Index}
     fatsites::ITensorNetworks.IndsNetwork{V,Index}
 end
+
+function NoiseModel(
+    noise_instructions::Set{NoiseInstruction},
+    sites::Vector{ITensors.Index{V}},
+    fatsites::Vector{ITensors.Index{V}},
+)::NoiseModel{V} where {V}
+    return NoiseModel(
+        noise_instructions, GraphUtils.linenetwork(sites), Utils.linenetwork(fatsites)
+    )
 end
+
+function Base.show(io::IO, noisemodel::NoiseModel)
+    names = [
+        noiseinstruction.name_of_instruction for
+        noiseinstruction in noisemodel.noise_instructions
+    ]
+    return println(io, "NoiseModel with noise instructions:", names)
+end
+end; #module

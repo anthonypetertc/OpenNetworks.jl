@@ -23,8 +23,9 @@ using OpenNetworks:
     VDMNetworks,
     NoiseModels,
     GraphUtils,
-    CustomParsing,
-    ProgressSettings
+    Gates.Gate,
+    ProgressSettings,
+    Utils.findindextype
 using SplitApplyCombine: group
 using ProgressMeter
 
@@ -39,9 +40,14 @@ struct NoisyCircuit{V}
     n_gates::Int
 end
 
-function NoisyCircuit(
-    parsedcircuit::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel
-)
+function Base.show(io::IO, noisycircuit::NoisyCircuit{V}) where {V}
+    return println(
+        io,
+        "NoisyCircuit with $(noisycircuit.n_gates) channels, acting on a system with site indices $(noisycircuit.fatsites)",
+    )
+end
+
+function NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModel)
     noisycircuit = add_noise_to_circuit(parsedcircuit, noise_model)
     compressedcircuit = absorb_single_qubit_gates(noisycircuit)
     n_gates = length(compressedcircuit)
@@ -55,73 +61,11 @@ function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.I
     return NoisyCircuit(compressedcircuit, fatsites, n_gates)
 end
 
-function ITensors.apply(
-    ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...
-)::VDMNetwork
-    for channel in noisy_circuit.channel_list
-        ρ = Channels.apply(channel, ρ; apply_kwargs...)
-    end
-    return ρ
-end
-
-function run_circuit(
-    ρ::VDMNetwork,
-    noisy_circuit::NoisyCircuit,
-    regauge_frequency::Integer=50;
-    progress_kwargs=default_progress_kwargs,
-    cache_update_kwargs,
-    apply_kwargs,
-)::VDMNetwork
-    norm_sqr = norm_sqr_network(ρ.network)
-    #Simple Belief Propagation Grouping
-    bp_cache = BeliefPropagationCache(norm_sqr, group(v -> v[1], vertices(norm_sqr)))
-    bp_cache = update(bp_cache; maxiter=20)
-    evolved_ψ = VidalITensorNetwork(ρ.network)
-
-    p = Progress(noisy_circuit.n_gates; progress_kwargs...)
-    for (j, gate) in enumerate(noisy_circuit.channel_list)
-        #println("Applying gate $j from moment $i")
-        indices = [ind for ind in inds(gate.tensor) if plev(ind) == 0]
-        channel_sites = [Channels.find_site(ind, evolved_ψ) for ind in indices]
-        if length(channel_sites) == 1
-            #println("Applying single qubit gate")
-            evolved_ψ[channel_sites[1]] = ITensors.apply(gate, evolved_ψ[channel_sites[1]])
-        elseif length(channel_sites) == 2
-            #println("Applying a two qubit gate.")
-            evolved_ψ = ITensorNetworks.apply(gate.tensor, evolved_ψ; apply_kwargs...)
-        else
-            throw("Invalid gate: Only two qubit and one qubit gates are supported.")
-        end
-
-        ProgressMeter.next!(p)
-        if i % regauge_frequency == 0
-            ge = ITensorNetworks.gauge_error(evolved_ψ)
-            println("Gauge error is $ge")
-            if ge > 1e-6
-                cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-                ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
-                evolved_ψ = VidalITensorNetwork(
-                    ψ_symm;
-                    (cache!)=cache_ref,
-                    cache_update_kwargs=(; cache_update_kwargs...),
-                )
-            end
-        end
-    end
-
-    cache_ref = Ref{BeliefPropagationCache}(bp_cache)
-    global ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
-    evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizedinds)
-    return evolved_ρ
-end
-
-function findindextype(i::ITensors.Index)::Type
-    return typeof(i)
-end
-
-function findindextype(fatsites::ITensorNetworks.IndsNetwork)::Type
-    firstind = first(fatsites[first(ITensorNetworks.vertices(fatsites))])
-    return findindextype(firstind)
+function NoisyCircuit(channel_list::Vector{Channel}, fatsites::Vector{<:ITensors.Index{}})
+    compressedcircuit = absorb_single_qubit_gates(channel_list)
+    n_gates = length(compressedcircuit)
+    fatsites = GraphUtils.linenetwork(fatsites)
+    return NoisyCircuit(compressedcircuit, fatsites, n_gates)
 end
 
 function compile_into_moments!(
@@ -295,7 +239,7 @@ function squeeze_single_qubit_gates(
 end
 
 function add_noise_to_circuit(
-    qc::Vector{CustomParsing.ParsedGate}, noise_model::NoiseModel{V}
+    qc::Vector{Gate}, noise_model::NoiseModel{V}
 )::Vector{Channel} where {V}
     if (
         GraphUtils.extract_adjacency_graph(qc) !=
@@ -306,7 +250,7 @@ function add_noise_to_circuit(
     sites = noise_model.sites
     vsites = noise_model.fatsites
     ψ = ITensorNetwork(v -> "0", sites)::ITensorNetwork{V}
-    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ, ψ), sites, vsites)::VDMNetwork{V}
+    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ', ψ), sites, vsites)::VDMNetwork{V}
     channel_list = Vector{Channels.Channel}()
     for gate in qc
         qubits = gate.qubits

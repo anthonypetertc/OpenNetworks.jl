@@ -24,11 +24,10 @@ vectorizer_output = Vectorization.vectorizer_output
 basespace = Vectorization.basespace
 fatsiteind = Vectorization.fatsiteind
 
-#outer = Utils.outer
 innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
 
-function fatsiteinds(
+function Vectorization.fatsiteinds(
     sites::ITensorNetworks.IndsNetwork{V}
 )::ITensorNetworks.IndsNetwork{V} where {V}
     vsites = deepcopy(sites)
@@ -112,7 +111,26 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     idn = idnetwork(ψ)
     new_network = apply(op, idn)
     new_op = VDMNetworks.VDMNetwork(new_network, ρ.unvectorizedinds, siteinds(ρ))
-    return inner(ρ.network, new_op.network; kwargs...)
+    return abs(inner(ρ.network, new_op.network; kwargs...))
+end
+
+function ITensorNetworks.vertices(ρ::VDMNetwork)
+    return ITensorNetworks.vertices(ρ.network)
+end
+
+function ITensorNetworks.edges(ρ::VDMNetwork)
+    return ITensorNetworks.edges(ρ.network)
+end
+
+function ITensorNetworks.expect(
+    operator::AbstractString, ρ::VDMNetworks.VDMNetwork{V}; kwargs...
+) where {V}
+    results = Dict()
+    for v in vertices(ρ)
+        o = op(operator, first(ρ.unvectorizedinds[v]))
+        results[v] = vexpect(ρ, o; kwargs...)
+    end
+    return results
 end
 
 end; # module

@@ -1,8 +1,18 @@
 using ITensors
 using ITensorMPS
-using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix
-using OpenNetworks: Lindblad, Channels
 using Test
+using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix, Vectorization.fatsiteinds
+using OpenNetworks:
+    NoisyCircuits.NoisyCircuit,
+    NoisyCircuits.compile_into_moments,
+    GraphUtils.linegraph,
+    Lindblad.trotterize,
+    Utils.findindextype,
+    OpenNetworks,
+    Lindblad,
+    Channels,
+    PreBuiltChannels,
+    Evolution.run_circuit
 
 @testset "test convertprodop" begin
     H = OpSum()
@@ -92,13 +102,19 @@ end
     lindbladdephasing = Lindblad.lindbladevolve(H, A, t, [fatsys[1]])
 
     p = (1 - exp(-2 * t)) / 2
-    krausdephasing = Channels.dephasing(p, system[1], ρ)
+    krausdephasing = PreBuiltChannels.dephasing(p, system[1], ρ, system)
 
     @test krausdephasing.tensor ≈ lindbladdephasing.tensor
     rtol = 1e-8
 end
 
-@testset "Trotterized XXZ" begin
+@testset "tebd" begin
+    n_sites = 4
+    s = siteinds("Qubit", n_sites)
+    fs = fatsiteinds(s)
+    ψ = productMPS(s, "0")
+    ρ = VectorizedDensityMatrix(outer(ψ', ψ), fs)
+
     h = 0.1
     D = 0.2
     yin = 0.3
@@ -106,71 +122,31 @@ end
     ydp = 0.04
 
     H = OpSum()
-    for e in edges(square_sites)
-        es = src(e)
-        ds = dst(e)
-        H += 1, "X", es, "X", ds # XX term
-        H += 1, "Y", es, "Y", ds # YY term
-        H += D, "Z", es, "Z", ds # ZZ term
+    for i in 1:(n_sites - 1)
+        H += 1, "X", i, "X", i + 1 # XX term
+        H += 1, "Y", i, "Y", i + 1 # YY term
+        H += D, "Z", i, "Z", i + 1 # ZZ term
     end
-    for v in vertices(square_sites)
-        H += h, "X", v
+    for i in 1:n_sites
+        H += h, "X", i
     end
 
     A = fill(OpSum(), 1)
-    for v in vertices(square_sites)
-        A[1] += sqrt(ydp), "Z", v
+    for i in 1:n_sites
+        A[1] += sqrt(ydp), "Z", i
     end
 
-    e = Dict((1, 1) => 1, (1, 2) => 2, (2, 1) => 3, (2, 2) => 4)
-    H2 = Lindblad.localhamiltonian(H, e)
-    A2 = Lindblad.localjumps(A, e)
+    steps = 100
+    Dt = 0.01
 
-    sites = [first(square_vsites[v]) for v in vertices(square_vsites)]
+    noisycircuit = trotterize(H, A, steps, Dt, fs; order=2)
+    ρ2 = run_circuit(ρ, noisycircuit)
 
-    dt = 0.01
-    steps = 20
-    t = steps * dt
-    ψ = ITensorNetwork(v -> "0", square_sites)
-    ψ[(1, 1)] = ITensors.apply(op("H", square_sites[(1, 1)]), ψ[(1, 1)])
-    ρ = OpenNetworks.VDMNetworks.VDMNetwork(
-        OpenNetworks.Utils.outer(ψ, ψ), square_sites, square_vsites
-    )
+    # Now by exact diagonalization.
+    L = OpenNetworks.Lindblad.lindbladevolve(H, A, Dt * steps, fs)
+    ρ3 = ITensors.apply(L, ρ) # Exact evolution.
 
-    L = OpenNetworks.Lindblad.lindbladevolve(H2, A2, t, sites) # Time evolution operator for the exact lindbladian evolution.
-    trottercircuit = OpenNetworks.Lindblad.firstordertrotter(H, A, steps, dt, square_vsites) #Trotterized evolution.
-    trottercircuit2 = OpenNetworks.Lindblad.secondordertrotter(
-        H, A, steps, dt, square_vsites
-    )
-
-    rho2 = ITensors.apply(L.tensor, ITensorNetworks.contract(ρ.network)) # Exact evolution.
-
-    gates_list1 = trottercircuit.channel_list
-    gate = gates_list1[1].tensor
-    for g in gates_list1
-        gate = ITensors.apply(g.tensor, gate)
-    end
-    rho3 = ITensors.apply(gate, ITensorNetworks.contract(ρ.network)) # Evolution by first order Trotter circuit.
-
-    gates_list2 = trottercircuit2.channel_list
-    gate2 = gates_list2[1].tensor
-    for g in gates_list1
-        gate2 = ITensors.apply(g.tensor, gate2)
-    end
-    rho4 = ITensors.apply(gate2, ITensorNetworks.contract(ρ.network)) #Evolution by second order Trotter circuit.
-
-    overlap =
-        first(ITensorNetworks.contract(dag(rho2), rho3)) / sqrt(
-            first(ITensorNetworks.contract(dag(rho2), rho2)) *
-            first(ITensorNetworks.contract(dag(rho3), rho3)),
-        )
+    overlap = inner(ρ2, ρ3) / sqrt(inner(ρ2, ρ2) * inner(ρ3, ρ3))
     overlap = overlap.re
-    @test isapprox(overlap, 1; rtol=dt) #Normalized overlap should be approximately 1.
-
-    overlap2 =
-        first(ITensorNetworks.contract(dag(rho2), rho4)) / sqrt(
-            first(ITensorNetworks.contract(dag(rho2), rho2)) *
-            first(ITensorNetworks.contract(dag(rho4), rho4)),
-        )
-    @test isapprox(overlap, 1; rtol=dt)
+    @test isapprox(overlap, 1; rtol=0.0001) #should be correct up to Trotter errors.
 end
