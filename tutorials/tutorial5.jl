@@ -14,6 +14,7 @@ begin
     using ITensorsOpenSystems: Vectorization.fatsiteinds
     using NamedGraphs: NamedGraph, add_edges!
     using OpenNetworks: VDMNetworks.VDMNetwork, Lindblad.trotterize, Evolution.run_circuit
+    using ITensorUnicodePlots: @visualize
 end
 
 # ╔═╡ 3316be4e-b87f-11ef-3c99-67a35443edd5
@@ -24,9 +25,9 @@ To do so, we will make use of the NamedGraphs package to construct a star and th
 """
 
 # ╔═╡ 8362dbe1-ed06-4276-94af-dd98e31b11d6
-begin
-    legs = 5
-    length_of_leg = 3
+begin #Make a tree with 3 legs, and 5 qubits per leg, joined together at a central node.
+    legs = 3
+    length_of_leg = 5
     qubits = Vector{Tuple{Int64,Int64}}()
     for leg in 1:legs
         for qubit in 1:(length_of_leg - 1)
@@ -37,7 +38,7 @@ begin
     G = NamedGraph(sort!(collect(qubits)))
     for pair1 in qubits
         for pair2 in qubits
-            if first(pair1) == first(pair2) && pair1 != pair2
+            if first(pair1) == first(pair2) && last(pair2) == last(pair1) + 1
                 add_edges!(G, [pair1 => pair2]) #Add edges connecting the sites on the legs.
             end
         end
@@ -48,7 +49,8 @@ begin
             add_edges!(G, [(0, 0) => pair]) #Add edges connecting the center to the legs.
         end
     end
-    G
+    @visualize G #Make a visualization of the Graph.
+    nothing
 end
 
 # ╔═╡ b16d6ac2-e7b9-45ac-85cc-e374429fd5ef
@@ -57,6 +59,7 @@ begin
     fs = fatsiteinds(s)
     ψ = ITensorNetwork("0", s) #Initialize in the all 0 state.
     ρ = VDMNetwork(outer(ψ', ψ), s, fs) #Initial density matrix.
+    nothing
 end
 
 # ╔═╡ 0e9a1555-3d72-4cbb-913c-795b70466cee
@@ -103,15 +106,17 @@ begin
     Dt = 0.1
     steps = 5
     circuit = trotterize(H, A, steps, Dt, fs; order=2) #Second order trotter decompositon of the circuit.
+    nothing
 end
 
 # ╔═╡ 688b5f99-3084-412d-8a79-9a40cddf3bab
 begin
-    cache_update_kwargs = Dict(:maxiter => 12, :tol => 1e-6)
+    cache_update_kwargs = Dict(:maxiter => 8, :tol => 1e-6)
     apply_kwargs = Dict(:maxdim => 16, :cutoff => 1e-14)
     ρevolved = run_circuit(ρ, circuit; cache_update_kwargs, apply_kwargs)
     results = expect("Z", ρevolved; alg="bp")
     @show results
+    nothing
 end
 
 # ╔═╡ Cell order:
