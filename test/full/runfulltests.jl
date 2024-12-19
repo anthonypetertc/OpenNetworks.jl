@@ -25,3 +25,7 @@ end
 @testset "Lindblad Evolution" begin
     include("full_test_lindblad.jl")
 end
+
+@testset "Tutorials" begin
+    include("full_test_tutorials.jl")
+end
