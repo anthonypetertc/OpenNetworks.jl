@@ -13,8 +13,8 @@ begin
     using ITensorNetworks: ITensorNetworks, edges, vertices, src, dst, ITensorNetwork
     using ITensorsOpenSystems: Vectorization.fatsiteinds
     using NamedGraphs
-    using OpenNetworks:
-        OpenNetworks, VDMNetworks.VDMNetwork, Lindblad.trotterize, Evolution.run_circuit
+    using OpenNetworks
+    using OpenNetworks: Evolution.run_circuit
     #using ITensorsOpenSystems
     #using OpenNetworks
 end

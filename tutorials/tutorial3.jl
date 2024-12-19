@@ -13,8 +13,8 @@ begin
     using ITensorMPS
     using ITensorNetworks
     using ITensorsOpenSystems: Vectorization.fatsiteinds
-    using OpenNetworks:
-        Channels.Channel, Lindblad.lindbladevolve, NoisyCircuits.NoisyCircuit
+    using OpenNetworks
+    using OpenNetworks: Lindblad.lindbladevolve, Channels.Channel
 end
 
 # ╔═╡ a0967194-b64d-11ef-37e7-fb65a9385867

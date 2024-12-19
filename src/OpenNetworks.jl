@@ -1,8 +1,6 @@
 module OpenNetworks
 
-export Channels
 export VectorizationNetworks
-export VDMNetworks
 
 include("core/VDMNetworks.jl")
 include("core/Gates.jl")
@@ -18,5 +16,20 @@ include("circuits/NoisyCircuits.jl")
 include("circuits/Circuits.jl")
 include("circuits/Lindblad.jl")
 include("circuits/Evolution.jl")
+
+using .VDMNetworks
+export VDMNetwork
+
+using .Gates
+export Gate
+
+using .GraphUtils
+export extract_adjacency_graph
+
+using .NoisyCircuits
+export NoisyCircuit
+
+using .Lindblad
+export trotterize
 
 end
