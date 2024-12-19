@@ -13,17 +13,13 @@ begin
     using ITensorNetworks: vertices
     using ITensorsOpenSystems: Vectorization.fatsiteinds
     using NamedGraphs
+    using OpenNetworks
     using OpenNetworks:
-        OpenNetworks,
         CustomParsing.parse_circuit,
-        Gates.Gate,
-        GraphUtils.extract_adjacency_graph,
         PreBuiltChannels.depolarizing,
         PreBuiltChannels.dephasing,
         NoiseModels.NoiseInstruction,
-        NoiseModels.NoiseModel,
-        NoisyCircuits.NoisyCircuit,
-        VDMNetworks.VDMNetwork
+        NoiseModels.NoiseModel
 end
 
 # ╔═╡ 535bb6b0-b26e-11ef-3744-6dc3e92c9261
@@ -132,7 +128,7 @@ Once a NoisyCircuit object has been built it can be run using the run_circuit fu
 """
 
 # ╔═╡ Cell order:
-# ╟─f41d2771-05ba-43d6-97b5-129d3a3932c0
+# ╠═f41d2771-05ba-43d6-97b5-129d3a3932c0
 # ╟─535bb6b0-b26e-11ef-3744-6dc3e92c9261
 # ╠═7c7c9a90-9d5f-42de-8e58-b95d552f0027
 # ╟─18403f2a-4907-4b3e-b049-7bf2328d4318

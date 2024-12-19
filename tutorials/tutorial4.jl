@@ -13,7 +13,8 @@ begin
     using ITensorMPS: productMPS
     using ITensorsOpenSystems:
         Vectorization.VectorizedDensityMatrix, Vectorization.fatsiteinds
-    using OpenNetworks: Lindblad.trotterize, Evolution.run_circuit, Lindblad.lindbladevolve
+    using OpenNetworks
+    using OpenNetworks: Evolution.run_circuit, Lindblad.lindbladevolve
 end
 
 # ╔═╡ fc6f06c2-b7ea-11ef-23e5-bba2ad58eea9

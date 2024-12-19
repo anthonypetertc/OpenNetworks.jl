@@ -13,7 +13,8 @@ begin
     using ITensorNetworks: ITensorNetwork, vertices, edges, src, dst
     using ITensorsOpenSystems: Vectorization.fatsiteinds
     using NamedGraphs: NamedGraph, add_edges!
-    using OpenNetworks: VDMNetworks.VDMNetwork, Lindblad.trotterize, Evolution.run_circuit
+    using OpenNetworks
+    using OpenNetworks: Evolution.run_circuit
     using ITensorUnicodePlots: @visualize
 end
 
