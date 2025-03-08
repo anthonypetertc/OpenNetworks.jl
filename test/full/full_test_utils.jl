@@ -52,6 +52,10 @@ vρ = square_rand_vρ
     end
 end;
 
+@testset "trace" begin
+   @test Utils.trace(vρ) == Utils.trace(ρ) 
+end
+
 #Prepare state in all zero state.
 ψ = ITensorNetwork(v -> "0", sites);
 ρ = VDMNetworks.VDMNetwork(outer(ψ', ψ), sites, vsites)
@@ -104,3 +108,5 @@ end;
         @test Utils.innerprod(evolved, evolved) ≈ 1.0
     end
 end;
+
+

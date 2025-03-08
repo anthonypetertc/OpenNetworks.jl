@@ -1,5 +1,5 @@
 module VDMNetworks
-export VDMNetwork, update_unvectorizednetwork!, update_unvectorizednetwork
+export VDMNetwork
 using ITensorsOpenSystems:
     Vectorization.basespace,
     Vectorization.vectorizer_input,
@@ -67,8 +67,15 @@ function show(io::IO, vdm::VDMNetwork)
     return show(io, vdm.network)
 end
 
+
+#=
+Functions for updating the network of indices of a VDMNetwork. 
+Not been tested.
+
 update_unvectorizednetwork!(vdm::VDMNetwork, unvectorizedinds::IndsNetwork)::VDMNetwork =
     VDMNetwork(vdm.network, unvectorizedinds)
 update_unvectorizednetwork(vdm::VDMNetwork, unvectorizedinds::IndsNetwork)::VDMNetwork =
     update_unvectorizednetwork!(deepcopy(vdm), unvectorizedinds)
+=#
+
 end;

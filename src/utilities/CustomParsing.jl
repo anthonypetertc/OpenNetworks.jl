@@ -4,6 +4,7 @@ export parse_circuit
 using JSON
 using OpenNetworks: Gates.Gate
 
+#=
 function typenarrow!(d::Dict{<:Any,<:Any})
     for key in keys(d)
         if typeof(d[key]) == Dict
@@ -14,6 +15,7 @@ function typenarrow!(d::Dict{<:Any,<:Any})
     end
     return d
 end
+=#
 
 function parse_circuit(circuit_path::String)::Vector{Gate}
     circuit = JSON.parsefile(circuit_path)

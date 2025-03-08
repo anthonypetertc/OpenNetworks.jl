@@ -86,3 +86,20 @@ end;
     XY_channel = Channels.compose(gate_channel, y_channel)
     @test XY_channel.tensor.tensor ≈ kron(Zt, Zt)
 end;
+
+@testset "apply_channel" begin
+    tensor = op("X", square_sites[(1,1)])
+    gate_channel = Channel("X", [tensor], square_rand_vρ)
+    
+    depol = depolarizing(0.05, square_sites[(1,1)], square_rand_vρ)
+    channels = [gate_channel, depol]
+    vρ2 = deepcopy(square_rand_vρ)
+    vρ3 = deepcopy(square_rand_vρ)
+    vρ2 = Channels.apply(channels, vρ2)
+    for channel in channels
+        vρ3 = Channels.apply(channel, vρ3)
+    end
+
+    norm_const = sqrt(Utils.innerprod(vρ2, vρ2) * Utils.innerprod(vρ3, vρ3))
+    @test Utils.innerprod(vρ2, vρ3) / norm_const ≈ 1
+end
