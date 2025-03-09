@@ -6,7 +6,7 @@ using OpenNetworks:
 using Random
 using LinearAlgebra
 using Graphs
-using ITensorNetworks: vertices, edges, src, dst
+using ITensorNetworks: vertices, edges, src, dst, add_edge!
 
 circ = CustomParsing.parse_circuit("example_circuits/circ.json")
 G = GraphUtils.extract_adjacency_graph(circ)
@@ -34,4 +34,13 @@ end
         @test s2[i] == [s[i]]
     end
     @test G == s2.data_graph.underlying_graph
+end
+
+@testset "islinegraph" begin
+    s = siteinds("Qubit", 10)
+    G = GraphUtils.linegraph(s)
+    @test GraphUtils.islinegraph(G)
+    
+    add_edge!(G, 1=>10)
+    @test !(GraphUtils.islinegraph(G))
 end

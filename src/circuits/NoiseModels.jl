@@ -4,7 +4,7 @@ export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 using ITensors: ITensors, Index, plev, inds, tags
 using ITensorNetworks
 using ITensorsOpenSystems
-using OpenNetworks: Channels, Utils, VectorizationNetworks, Channels.tagstring
+using OpenNetworks: Channels, Utils, VectorizationNetworks, Channels.tagstring, GraphUtils, Gates.Gate
 
 struct NoiseInstruction
     name_of_instruction::String
@@ -79,10 +79,11 @@ end
 function NoiseModel(
     noise_instructions::Set{NoiseInstruction},
     sites::Vector{ITensors.Index{V}},
-    fatsites::Vector{ITensors.Index{V}},
+    fatsites::Vector{<:ITensors.Index{}},
+    qc::Vector{Gate}
 )::NoiseModel{V} where {V}
     return NoiseModel(
-        noise_instructions, GraphUtils.linenetwork(sites), Utils.linenetwork(fatsites)
+        noise_instructions, GraphUtils.linenetwork(sites, qc), GraphUtils.linenetwork(fatsites, qc)
     )
 end
 

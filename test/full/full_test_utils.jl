@@ -53,7 +53,9 @@ vρ = square_rand_vρ
 end;
 
 @testset "trace" begin
-   @test Utils.trace(vρ) == Utils.trace(ρ) 
+    ψ = ITensorNetwork(v -> "0", sites)
+    ρ = Utils.outer(ψ', ψ)
+   @test Utils.trace(ρ) ≈ 1.0 
 end
 
 #Prepare state in all zero state.

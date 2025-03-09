@@ -1,4 +1,8 @@
 
+@testset "TEBD" begin
+    include("test_tebd.jl")
+end
+
 @testset "Channel tests" begin
     include("test_channel.jl")
 end

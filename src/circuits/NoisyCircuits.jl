@@ -47,7 +47,7 @@ function Base.show(io::IO, noisycircuit::NoisyCircuit{V}) where {V}
     )
 end
 
-function NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModel)
+function NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModels.NoiseModel{V}) where V
     noisycircuit = add_noise_to_circuit(parsedcircuit, noise_model)
     compressedcircuit = absorb_single_qubit_gates(noisycircuit)
     n_gates = length(compressedcircuit)
@@ -242,10 +242,10 @@ function add_noise_to_circuit(
     qc::Vector{Gate}, noise_model::NoiseModel{V}
 )::Vector{Channel} where {V}
     if (
-        GraphUtils.extract_adjacency_graph(qc) !=
-        noise_model.sites.data_graph.underlying_graph
+        GraphUtils.extract_adjacency_graph(qc)!=
+        noise_model.sites.data_graph.underlying_graph 
     )
-        throw("The circuit and the noiseNoisyCircuits model do not have the same sites.")
+        throw("The circuit and the NoisyCircuits model do not have the same sites.")
     end
     sites = noise_model.sites
     vsites = noise_model.fatsites
