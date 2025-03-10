@@ -8,7 +8,7 @@ using ITensorNetworks
 using OpenNetworks: Channels.Channel, VDMNetworks.VDMNetwork
 
 
-function _kraus_depolarizing1(p:: Real, sites::Vector{<: ITensors.Index{}})::Vector{ITensors.ITensor}
+function _kraus_depolarizing1(p:: Real, sites::Vector)::Vector{ITensors.ITensor}
     const0 = sqrt(1 - 3 * p / 4)
     constσ = sqrt(p / 4)
     kraus_maps = [

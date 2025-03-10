@@ -261,4 +261,23 @@ end;
 
     norm_const = sqrt(Utils.innerprod(vρ2, vρ2) * Utils.innerprod(vρ3, vρ3))
     @test Utils.innerprod(vρ2, vρ3) / norm_const ≈ 1
-end
+end;
+
+@testset "dephasing tests" begin 
+p = 0.01
+sites = square_sites
+site = first(sites[(1,1)])
+
+    @testset "dephasing" begin
+        depha = dephasing(p, site)
+        arr = array(depha.tensor)
+        @test arr ≈ diagm([1.0, 1-2*p, 1-2*p, 1.0])
+    end;
+
+    @testset "dephasing with VDMNetwork" begin
+        ρ = square_rand_vρ
+        depha = dephasing(p, site, ρ)
+        arr = array(depha.tensor)
+        @test arr ≈ diagm([1.0, 1- 2*p, 1-2*p, 1.0])
+    end;
+end;

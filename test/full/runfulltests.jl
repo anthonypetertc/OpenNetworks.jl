@@ -30,7 +30,7 @@ end
     include("full_test_tebd.jl")
 end
 
-#=
+
 @testset "Tutorials" begin
     include("full_test_tutorials.jl")
-end =#
+end
