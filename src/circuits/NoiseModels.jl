@@ -20,6 +20,7 @@ struct NoiseInstruction
         name_of_gates::Set{<:AbstractString},
         qubits_noise_applies_to::Set{<:ITensors.Index{}},
     )
+        index_ordering_of_channel = copy(index_ordering_of_channel)
         new_tensor = copy(channel.tensor)
         for (i, index) in enumerate(index_ordering_of_channel)
             if !(index in inds(channel.tensor))

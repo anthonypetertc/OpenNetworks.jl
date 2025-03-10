@@ -88,7 +88,8 @@ function islinenetwork(sites::IndsNetwork)::Bool
 end
 
 
-function islinenetwork2(sites::IndsNetwork)::Bool
+#=
+function islinenetwork_old(sites::IndsNetwork)::Bool
     T = findindextype(sites)
     siteindices = Vector{T}()
     for v in vertices(sites)
@@ -96,7 +97,7 @@ function islinenetwork2(sites::IndsNetwork)::Bool
     end
     lg = linegraph(siteindices)
     return sites.data_graph.underlying_graph == lg
-end
+end=#
 
 function ITensors.siteinds(tag::String, qc:: Vector{Gate})::Vector{<:Index}
     g = extract_adjacency_graph(qc)

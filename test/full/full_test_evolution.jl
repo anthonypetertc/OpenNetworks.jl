@@ -105,8 +105,7 @@ end;
     )
     noise_model = NoiseModels.NoiseModel(Set([noise_instruction]), sites, vsites)
     noisy_circuit = NoisyCircuits.NoisyCircuit(qc, noise_model)
-    @show noisy_circuit.channel_list
-
+    
     cache_update_kwargs = Dict(:maxiter => 16, :tol => 1e-6, :verbose => false)
     apply_kwargs = Dict(:maxdim => 20, :cutoff => 1e-14)
     
