@@ -38,6 +38,7 @@ end
 
 function tagstring(T::ITensors.TagSet)::String
     # Takes a tag set and converts it into a string.
+    # Internal function, not covered in tests.
 
     res = ""
     ts = [tag for tag in T]
@@ -237,10 +238,13 @@ function Base.show(io::IO, channel::Channel)
     return println(io, "Channel $(channel.name) with indices $(inds(channel.tensor))")
 end
 
+#=
+Not tested and should not be used.
 function ITensors.apply(channel::Channel, ρ::MPS; kwargs...)::MPS
     channel_tensor = channel.tensor
     return ITensors.apply(channel_tensor, ρ; kwargs...)
 end
+=#
 
 function ITensors.apply(
     channel::Channel, ρ::VectorizedDensityMatrix; kwargs...

@@ -124,7 +124,8 @@ function trace(ρ::AbstractITensorNetwork)::Complex
     ρ = deepcopy(ρ)
     for key in keys(ρ.data_graph.vertex_data)
         s = [ind for ind in inds(ρ[key]) if hastags(ind, "Site") && plev(ind) == 0]
-        if !(length(s) == 1)
+        sp = inds(ρ[key]; tags="Site", plev=1)
+        if !(length(s) == 1) || !(length(sp) == 1)
             throw("Should only be one physical leg per site.")
         end
         ρ[key] *= delta(s[1], prime(s[1]))
@@ -132,10 +133,8 @@ function trace(ρ::AbstractITensorNetwork)::Complex
     return Array(contract(ρ).tensor)[1]
 end
 
-function trace(ρ::VDMNetwork)::Complex
-    return trace(ρ.network)
-end
 
+#=
 function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwork)
     #= Purpose: Relabels the sites of an ITensorNetwork.
     Inputs: ψ (AbstractITensorNetwork) - ITensorNetwork to relabel.
@@ -147,5 +146,6 @@ function relabel!(ψ::AbstractITensorNetwork, ind_net::ITensorNetworks.IndsNetwo
         ψ[key] *= dd
     end
 end
+=#
 
 end;

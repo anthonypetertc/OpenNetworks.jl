@@ -36,3 +36,22 @@ end;
         @test ITensors.hastags(ind, "QubitVec")
     end
 end;
+
+@testset "vertices" begin
+    @test vertices(vρ) == vertices(ρ)
+end
+
+@testset "edges" begin
+    @test edges(vρ) == edges(ρ)
+end
+
+
+@testset "expectation" begin
+    o = op("Z", sites[(1, 1)])
+    @test VectorizationNetworks.vexpect(vρ, o; alg="exact") ≈
+        Utils.trace(ITensorNetworks.apply(o, ρ))
+
+    @test VectorizationNetworks.vexpect(vρ, o; alg="exact") ≈
+        expect("Z", vρ; alg="exact")[(1,1)]
+end;
+

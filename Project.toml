@@ -4,6 +4,7 @@ authors = ["anthonypetertc <anthonypetertc@hotmail.com>"]
 version = "0.1.0"
 
 [deps]
+Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 DataGraphs = "b5a273c3-7e6c-41f6-98bd-8d7f1525a36a"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 FilePathsBase = "48062228-2e41-5def-b9a4-89aafe57970f"

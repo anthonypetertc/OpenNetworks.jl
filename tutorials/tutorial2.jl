@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ f41d2771-05ba-43d6-97b5-129d3a3932c0
 begin
     using Pkg
-    cd("/home/tony/OpenNetworks.jl")
+    cd("/home/tony/MEGA/git/OpenNetworks.jl")
     Pkg.activate(".")
     using ITensors
     using ITensorNetworks: vertices

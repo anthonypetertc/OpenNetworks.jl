@@ -245,3 +245,39 @@ composed_channel = Channels.compose(CX_channel, X_channel)
     @test Utils.innerprod(Channels.apply(composed_channel, ρ10), ρ00) ≈ 1
     @test Utils.innerprod(Channels.apply(composed_channel, ρ11), ρ01) ≈ 1
 end;
+
+@testset "apply_channel" begin
+    tensor = op("X", square_sites[(1,1)])
+    gate_channel = Channel("X", [tensor], square_rand_vρ)
+    
+    depol = depolarizing(0.05, square_sites[(1,1)], square_rand_vρ)
+    channels = [gate_channel, depol]
+    vρ2 = deepcopy(square_rand_vρ)
+    vρ3 = deepcopy(square_rand_vρ)
+    vρ2 = Channels.apply(channels, vρ2)
+    for channel in channels
+        vρ3 = Channels.apply(channel, vρ3)
+    end
+
+    norm_const = sqrt(Utils.innerprod(vρ2, vρ2) * Utils.innerprod(vρ3, vρ3))
+    @test Utils.innerprod(vρ2, vρ3) / norm_const ≈ 1
+end;
+
+@testset "dephasing tests" begin 
+p = 0.01
+sites = square_sites
+site = first(sites[(1,1)])
+
+    @testset "dephasing" begin
+        depha = dephasing(p, site)
+        arr = array(depha.tensor)
+        @test arr ≈ diagm([1.0, 1-2*p, 1-2*p, 1.0])
+    end;
+
+    @testset "dephasing with VDMNetwork" begin
+        ρ = square_rand_vρ
+        depha = dephasing(p, site, ρ)
+        arr = array(depha.tensor)
+        @test arr ≈ diagm([1.0, 1- 2*p, 1-2*p, 1.0])
+    end;
+end;

@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ 71c97f22-c4e3-46fc-85a2-7a5b8feb035b
 begin
     using Pkg
-    cd("/home/tony/OpenNetworks.jl")
+    cd("/home/tony/MEGA/git/OpenNetworks.jl")
     Pkg.activate(".")
     using ITensors: siteinds, outer, OpSum, apply, inner
     using ITensorMPS: productMPS

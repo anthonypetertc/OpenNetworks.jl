@@ -4,11 +4,13 @@ using OpenNetworks
 
 include("pre-test.jl")
 
-#To run tests with ARGS in the REPL:
-#using Pkg;Pkg.activate(".");Pkg.test(test_args=["full"])
+#=To run tests with ARGS in the REPL:
+using Pkg;Pkg.activate(".");Pkg.test(test_args=["full"])
+using Pkg;Pkg.activate(".");Pkg.test(test_args=["quick"])
+=#
 
-if "full" in ARGS
-    include("full/runfulltests.jl")
-else
+if "quick" in ARGS
     include("quick/runquicktests.jl")
+else
+    include("full/runfulltests.jl")
 end

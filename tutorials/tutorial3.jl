@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ d7f95a07-7404-49a8-8431-74ab1ccd8388
 begin
     using Pkg
-    cd("/home/tony/OpenNetworks.jl")
+    cd("/home/tony/MEGA/git/OpenNetworks.jl")
     Pkg.activate(".")
     using ITensors
     using ITensorMPS
