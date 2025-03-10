@@ -1,5 +1,5 @@
 module Channels
-export Channel, opdouble, Gate
+export Channel, opdouble
 
 using ITensors
 using ITensorMPS
@@ -180,6 +180,55 @@ function _krausindscheck(kraus_maps::Vector{ITensor})::Nothing
         @assert isa(noncommonind(kraus1, kraus), Nothing) "Kraus Operators are not acting on the same indices. Use identity maps if required."
     end
 end
+
+"""
+Channel
+
+A Channel is a struct which is designed to represent a quantum channel.
+It contains a name (for debugging purposes), and an ITensor (which 
+contains the quantum channel acting on a vectorized density matrix).
+
+# Examples
+```julia
+julia> s = siteinds("Qubit", 2)
+2-element Vector{Index{Int64}}:
+ (dim=2|id=286|"Qubit,Site,n=1")
+ (dim=2|id=835|"Qubit,Site,n=2")
+
+julia> oZ = op("Z", s[1])
+ITensor ord=2 (dim=2|id=286|"Qubit,Site,n=1")' (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+
+julia> oI = op("I", s[1])
+ITensor ord=2 (dim=2|id=286|"Qubit,Site,n=1")' (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+
+julia> p = 0.01
+0.01
+
+julia> kraus_maps = [sqrt(1-p)* oI, sqrt(p) * oZ]
+2-element Vector{ITensor}:
+ ITensor ord=2
+Dim 1: (dim=2|id=286|"Qubit,Site,n=1")'
+Dim 2: (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+ 2×2
+ 0.99498743710662  0.0
+ 0.0               0.99498743710662
+ ITensor ord=2
+Dim 1: (dim=2|id=286|"Qubit,Site,n=1")'
+Dim 2: (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+ 2×2
+ 0.1   0.0
+ 0.0  -0.1
+
+ # Construct a dephasing Channel from the kraus maps.
+
+julia> dephasing = Channel("dephasing", kraus_maps)
+Channel dephasing with indices ((dim=4|id=282|"QubitVec,Site,n=1"), (dim=4|id=282|"QubitVec,Site,n=1")')
+```
+"""
 
 struct Channel
     name::String
