@@ -86,6 +86,18 @@ function ITensors.findsite(ρ::VDMNetwork{V}, ind::ITensors.Index)::V where {V}
     return findsite(ρ.network, ind)
 end
 
+
+"""
+opdouble(o::ITensor)::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+
+Doubles the ITensor by applying the vectorization process to it.
+Given an ITennsor `o`, it returns `o⊗o†` where `o†` is the conjugate transpose of `o`.
+The indices of the ITensor are vectorized.
+
+"""
+
 function opdouble(o::ITensor)::ITensor
     indices = collect(inds(o; plev=0))
     odag = addtags(dag(o), "dag")
@@ -109,6 +121,17 @@ function opdouble(o::ITensor)::ITensor
     end
     return o
 end
+
+"""
+opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+- `fatinds::Vector{<:Index{}}`: The fat indices to be used for the doubling.
+
+Doubles the ITensor by applying the vectorization process to it. Uses 
+the provided fat indices as the indices of the doubled ITensor.
+
+"""
 
 function opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
     od = opdouble(o)
@@ -295,11 +318,34 @@ function ITensors.apply(channel::Channel, ρ::MPS; kwargs...)::MPS
 end
 =#
 
+"""
+apply(channel::Channel, ρ::VectorizedDensityMatrix; kwargs...)
+
+Arguments:
+- `channel::Channel`: The channel to be applied.
+- `ρ::VectorizedDensityMatrix`: The vectorized density matrix to which the channel is applied.
+- `kwargs...`: Additional keyword arguments for the ITensor apply function.
+
+Applies the channel to the vectorized density matrix and returns the resulting vectorized density matrix.
+"""
+
 function ITensors.apply(
     channel::Channel, ρ::VectorizedDensityMatrix; kwargs...
 )::VectorizedDensityMatrix
     return ITensors.apply(channel.tensor, ρ; kwargs...)
 end
+
+"""
+apply(channel::Channel, ρ::VDMNetwork{V}; kwargs...)
+
+Arguments:
+- `channel::Channel`: The channel to be applied.
+- `ρ::VDMNetwork{V}`: The vectorized density matrix network to which the channel is applied.
+- `kwargs...`: Additional keyword arguments for the ITensor apply function.
+
+Applies the channel to the vectorized density matrix network and returns the resulting vectorized density matrix network.
+
+"""
 
 function ITensors.apply(
     channel::Channel, ρ::VDMNetwork{V}; kwargs...
@@ -328,6 +374,17 @@ function ITensors.apply(
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network; kwargs...), ρ.unvectorizedinds)
 end
+
+"""
+compose(post::Channel, pre::Channel)::Channel
+Arguments:
+- `post::Channel`: The channel to be applied after the pre-channel.
+- `pre::Channel`: The channel to be applied before the post-channel.
+
+Composes two channels by multiplying their tensors and returns the resulting channel.
+
+"""
+
 
 function compose(post::Channel, pre::Channel)::Channel
     matching = [
