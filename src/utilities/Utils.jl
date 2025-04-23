@@ -26,12 +26,27 @@ function findindextype(fatsites::ITensorNetworks.IndsNetwork)::Type
     return findindextype(firstind)
 end
 
+"""
+    swapprime!(ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...)
+
+    Arguments:
+    ψ::AbstractITensorNetwork
+        The ITensorNetwork to swap the prime level of.
+    pl1::Int
+        The first prime level to swap.
+    pl2::Int
+        The second prime level to swap.
+    kwargs...
+        Additional keyword arguments to pass to the swapprime function.
+
+    Swaps the prime level of all indices of all ITensors in 
+    the ITensorNetwork ψ from pl1 to pl2.
+
+"""
+
 function swapprime!(
     ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...
 )::AbstractITensorNetwork
-    #= Purpose: Swaps the prime level of the ITensorNetwork.
-    Inputs: ψ (AbstractITensorNetwork) - ITensorNetwork to swap the prime level of.
-    Returns: AbstractITensorNetwork - ITensorNetwork with the prime level swapped. =#
     vd = ψ.data_graph.vertex_data
     for key in keys(vd)
         vd[key] = swapprime(vd[key], pl1, pl2; kwargs...)
@@ -39,30 +54,76 @@ function swapprime!(
     return ψ
 end
 
+"""
+    swapprime(ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...)
+
+    Arguments:
+    ψ::AbstractITensorNetwork
+        The ITensorNetwork to swap the prime level of.
+    pl1::Int
+        The first prime level to swap.
+    pl2::Int
+        The second prime level to swap.
+    kwargs...
+        Additional keyword arguments to pass to the swapprime function.
+
+    Swaps the prime level of all indices of all ITensors in 
+    the ITensorNetwork ψ from pl1 to pl2.
+
+"""
+
 function swapprime(
     ψ::AbstractITensorNetwork, pl1::Int, pl2::Int; kwargs...
 )::AbstractITensorNetwork
     return swapprime!(deepcopy(ψ), pl1, pl2; kwargs...)
 end
 
+"""
+    swapprime!(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)
+
+    Arguments:
+    ρ::VDMNetwork
+        The VDMNetwork to swap the prime level of.
+    pl1::Int
+        The first prime level to swap.
+    pl2::Int
+        The second prime level to swap.
+    kwargs...
+        Additional keyword arguments to pass to the swapprime function.
+
+    Swaps the prime level of all indices of all ITensors in 
+    the VDMNetwork ρ from pl1 to pl2.
+
+"""
+
 function swapprime!(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)::VDMNetwork
     swapprime!(ρ.network, pl1, pl2; kwargs...)
     return ρ
 end
 
+"""
+    swapprime(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)
+
+    Arguments:
+    ρ::VDMNetwork
+        The VDMNetwork to swap the prime level of.
+    pl1::Int
+        The first prime level to swap.
+    pl2::Int
+        The second prime level to swap.
+    kwargs...
+        Additional keyword arguments to pass to the swapprime function.
+
+    Swaps the prime level of all indices of all ITensors in 
+    the VDMNetwork ρ from pl1 to pl2.
+
+"""
+
+
 function swapprime(ρ::VDMNetwork, pl1::Int, pl2::Int; kwargs...)::VDMNetwork
     return swapprime!(deepcopy(ρ), pl1, pl2; kwargs...)
 end
 
-#=
-function innerprod(ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork)::Complex
-    #= Purpose: Computes the inner product of two ITensorNetworks.
-    Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
-            ϕ (AbstractITensorNetwork) - Second ITensorNetwork.
-    Returns: Complex - Inner product of the two ITensorNetworks. =#
-    @assert ψ.data_graph.underlying_graph.vertices == ϕ.data_graph.underlying_graph.vertices "The two ITensorNetworks must have the same underlying graph."
-    return Array(contract(ψ ⊗ dag(ϕ)).tensor)[1]
-end =#
 
 function innerprod(ρ::VDMNetwork, ϕ::VDMNetwork)::Complex
     return ITensorNetworks.inner(ρ.network, ϕ.network; alg="exact")
@@ -106,10 +167,6 @@ end
 function ITensors.outer(
     ψ::AbstractITensorNetwork, ϕ::AbstractITensorNetwork
 )::AbstractITensorNetwork
-    #= Purpose: Computes the outer product of two ITensorNetworks.
-    Inputs: ψ (AbstractITensorNetwork) - First ITensorNetwork.
-            ϕ (AbstractITensorNetwork) - Second ITensorNetwork.
-    Returns: ITensorNetwork - Outer product of the two ITensorNetworks. =#
     if !(ψ.data_graph.underlying_graph == ϕ.data_graph.underlying_graph)
         throw("The two ITensorNetworks must have the same underlying graph.")
     end
@@ -117,10 +174,19 @@ function ITensors.outer(
     return merge_bond_legs(compress_underlying_graph(ψϕ, ψ))
 end
 
+"""
+    trace(ρ::AbstractITensorNetwork)::Complex
+
+    Arguments:
+    ρ::AbstractITensorNetwork
+        The ITensorNetwork to compute the trace of.
+
+    Computes the trace of the ITensorNetwork ρ by contracting input and output legs
+    of every tensor.
+
+"""
+
 function trace(ρ::AbstractITensorNetwork)::Complex
-    #= Purpose: Computes the trace of an ITensorNetwork.
-    Inputs: ρ (AbstractITensorNetwork) - ITensorNetwork to compute the trace of.
-    Returns: Complex - Trace of the ITensorNetwork. =#
     ρ = deepcopy(ρ)
     for key in keys(ρ.data_graph.vertex_data)
         s = [ind for ind in inds(ρ[key]) if hastags(ind, "Site") && plev(ind) == 0]
