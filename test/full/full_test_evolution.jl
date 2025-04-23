@@ -1,6 +1,5 @@
 using Test
 using OpenNetworks:
-    VectorizationNetworks,
     Utils,
     Channels,
     GraphUtils,

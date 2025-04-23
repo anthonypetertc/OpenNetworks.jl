@@ -1,8 +1,6 @@
 using Test
-using ITensorsOpenSystems
 using ITensors
 using OpenNetworks:
-    VectorizationNetworks,
     Utils,
     Channels,
     GraphUtils,
@@ -11,9 +9,6 @@ using OpenNetworks:
     CustomParsing,
     VDMNetworks,
     PreBuiltChannels
-using Random
-using LinearAlgebra
-using Graphs
 using ITensorNetworks
 
 N = 12
