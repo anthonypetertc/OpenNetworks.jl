@@ -61,7 +61,8 @@ end
     apply_kwargs::Dict{Symbol, Any}
         Additional arguments for the apply function.
 
-    Returns the evolved ITensorNetwork after applying the circuit to intial state ψ.
+    Evolves the initial state ψ  by the given circuit,
+    using the Simple Update algorithm, and BP regauing at regular intervals.
 
 """
 
