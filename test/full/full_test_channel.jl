@@ -9,6 +9,7 @@ using OpenNetworks:
     PreBuiltChannels.dephasing
 using Random
 using Graphs
+using LinearAlgebra: diagm
 using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
 
 opdouble = Channels.opdouble
