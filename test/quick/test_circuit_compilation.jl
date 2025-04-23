@@ -1,18 +1,10 @@
 using Test
-using ITensorsOpenSystems
 using ITensors
 using OpenNetworks:
-    VectorizationNetworks,
     VDMNetworks,
     Utils,
-    Channels,
     GraphUtils,
-    NoisyCircuits,
-    NoiseModels,
-    CustomParsing
-using Random
-using LinearAlgebra
-using Graphs
+    NoisyCircuits
 using ITensorNetworks
 
 N = 12
