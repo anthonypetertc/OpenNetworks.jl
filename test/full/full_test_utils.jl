@@ -1,10 +1,6 @@
 using Test
-using ITensorsOpenSystems
-using ITensors
-using OpenNetworks: VDMNetworks, Utils, Channels, VectorizationNetworks
+using OpenNetworks: VDMNetworks, Utils, Channels
 using NamedGraphs: NamedGraphGenerators.named_grid
-using Random
-using LinearAlgebra
 using Graphs
 using ITensorNetworks
 
@@ -17,7 +13,6 @@ g = square_g
 sites = square_sites
 vsites = square_vsites
 χ = 4
-#Random.seed!(1564)
 ψ = square_rand_ψ
 ρ = square_rand_ρ
 vρ = square_rand_vρ
