@@ -3,8 +3,33 @@ export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 
 using ITensors: ITensors, Index, plev, inds, tags
 using ITensorNetworks
-using ITensorsOpenSystems
-using OpenNetworks: Channels, Utils, VectorizationNetworks, Channels.tagstring, GraphUtils, Gates.Gate
+using OpenNetworks: Channels, Utils, Channels.tagstring, GraphUtils, Gates.Gate
+
+"""
+    NoiseInstruction(
+        name_of_instruction::String,
+        channel::Channels.Channel,
+        index_ordering_of_channel::Vector{<:ITensors.Index{}},
+        name_of_gates::Set{<:AbstractString},
+        qubits_noise_applies_to::Set{<:ITensors.Index{}},
+    )
+
+    Arguments
+    name_of_instruction::String
+        The name of the noise instruction.
+    channel::Channels.Channel
+        The channel representing the noise.
+    index_ordering_of_channel::Vector{<:ITensors.Index{}}
+        The ordering of indices in the channel tensor.
+    name_of_gates::Set{<:AbstractString}
+        The names of the gates to which the noise applies.
+    qubits_noise_applies_to::Set{<:ITensors.Index{}}
+        The qubits to which the noise applies.
+    
+    A NoiseInstruction identifies a Channel that acts on a set of qubits,
+    following a specific set of gates.
+
+"""
 
 struct NoiseInstruction
     name_of_instruction::String
@@ -70,6 +95,29 @@ function prepare_noise_for_gate(
     end
     return Channels.Channel(noise_instruction.channel.name, new_tensor)
 end
+
+"""
+    NoiseModel(
+        noise_instructions::Set{NoiseInstruction},
+        sites::Vector{ITensors.Index{V}},
+        fatsites::Vector{<:ITensors.Index{}},
+        qc::Vector{Gate}
+    )
+
+    Arguments
+    noise_instructions::Set{NoiseInstruction}
+        The set of noise instructions.
+    sites::Vector{ITensors.Index{V}}
+        The sites on which the noise acts.
+    fatsites::Vector{<:ITensors.Index{}}
+        The fat sites on which the noise acts.
+    qc::Vector{Gate}
+        The gates to which the noise applies.
+
+    A NoiseModel is a collection of NoiseInstructions that can be applied to a set of qubits.
+    It specifies what noise (in the form of channels) applies to which qubits, 
+    and which gates the noise follows. (Currently, only supports noise applied immediately after a gate.)
+"""
 
 struct NoiseModel{V}
     noise_instructions::Set{NoiseInstruction}
