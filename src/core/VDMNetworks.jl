@@ -6,8 +6,17 @@ using ITensorsOpenSystems:
     Vectorization.vectorizer_output,
     Vectorization.vectorizer
 
-using ITensorNetworks: ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
+using ITensorNetworks: ITensorNetwork, IndsNetwork, vertices
 using ITensors: Index, ITensors, QN
+
+"""
+    VDMNetwork
+A structure to represent a vectorized density matrix network.
+    network::ITensorNetwork{V}
+        The underlying ITensorNetwork representing the density matrix.
+    unvectorizedinds::IndsNetwork{V,Index}
+        The unvectorized indices of the state.
+"""
 
 struct VDMNetwork{V}
     network::ITensorNetwork{V}
@@ -17,6 +26,20 @@ end
 function Base.show(io::IO, ρ::VDMNetwork)
     return println(io, "VDMNetwork with underlying ITensorNetwork: $(ρ.network)")
 end
+
+"""
+    VDMNetwork(ρ::ITensorNetwork{V}, sites::IndsNetwork{V,Index}, fatsites::IndsNetwork{V,Index}) where {V}
+
+    Arguments:
+    ρ::ITensorNetwork{V}
+        The underlying ITensorNetwork representing the density matrix.
+    sites::IndsNetwork{V,Index}
+        The unvectorized indices of the state.
+    fatsites::IndsNetwork{V,Index}
+        The vectorized indices of the state.
+
+    Constructs a VDMNetwork from the given ITensorNetwork using fatsites as the vectorized indices.
+"""
 
 function VDMNetwork(
     ρ::ITensorNetwork{V}, sites::IndsNetwork{V,Index}, fatsites::IndsNetwork{V,Index}
