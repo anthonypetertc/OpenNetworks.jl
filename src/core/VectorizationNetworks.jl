@@ -2,30 +2,34 @@ module VectorizationNetworks
 
 using NamedGraphs: vertices
 using ITensorNetworks:
-    AbstractITensorNetwork,
     ITensorNetworks,
     ITensorNetwork,
-    ⊗,
     siteinds,
-    VidalITensorNetwork,
     IndsNetwork,
     inner,
     apply,
     vertices
-using ITensors: ITensor, dag, inds, inner, op, randomITensor, delta, ITensors, Index, QN
-import ITensors: outer
+using ITensors: ITensor, dag, inds, inner, op, delta, ITensors, Index
 using ITensorsOpenSystems: Vectorization
-using OpenNetworks: Utils, VDMNetworks
-import Base: show, repr
+using OpenNetworks: VDMNetworks
 
 vectorizer = Vectorization.vectorizer
 vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 basespace = Vectorization.basespace
 fatsiteind = Vectorization.fatsiteind
-
-innerprod = Utils.innerprod
 VDMNetwork = VDMNetworks.VDMNetwork
+
+"""
+    fatsiteinds(sites::IndsNetwork{V})::IndsNetwork{V}
+
+    Arguments:
+    sites::IndsNetwork{V}
+        The input IndsNetwork to be vectorized.
+    
+    Vectorizers the indices of the input IndsNetwork and returns a new IndsNetwork with vectorized indices.
+
+"""
 
 function Vectorization.fatsiteinds(
     sites::ITensorNetworks.IndsNetwork{V}
@@ -114,13 +118,46 @@ function vexpect(ρ::VDMNetwork, op::ITensor; kwargs...)::Complex
     return abs(inner(ρ.network, new_op.network; kwargs...))
 end
 
+"""
+    vertices(ρ::VDMNetwork)
+
+    Arguments:
+    ρ::VDMNetwork
+        The VDMNetwork for which to get the vertices.
+    
+    Returns the vertices of the VDMNetwork.
+"""
+
 function ITensorNetworks.vertices(ρ::VDMNetwork)
     return ITensorNetworks.vertices(ρ.network)
 end
 
+"""
+    edges(ρ::VDMNetwork)
+
+    Arguments:
+    ρ::VDMNetwork
+        The VDMNetwork for which to get the edges.
+    
+    Returns the edges of the VDMNetwork.
+"""
+
 function ITensorNetworks.edges(ρ::VDMNetwork)
     return ITensorNetworks.edges(ρ.network)
 end
+
+"""
+    expect(operator::AbstractString, ρ::VDMNetwork{V}; kwargs...)
+
+    Arguments:
+    operator::AbstractString
+        The operator to be applied.
+    ρ::VDMNetwork{V}
+        The VDMNetwork for which to compute the expectation value.
+    
+    Computes the expectation value of the operator with respect to the 
+    density matrix correpsonding to the VDMNetwork.
+"""
 
 function ITensorNetworks.expect(
     operator::AbstractString, ρ::VDMNetworks.VDMNetwork{V}; kwargs...
