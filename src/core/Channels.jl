@@ -2,11 +2,10 @@ module Channels
 export Channel, opdouble
 
 using ITensors
-using ITensorMPS
 import ITensorsOpenSystems: Vectorization, Vectorization.fatsiteinds
 using ITensorNetworks:
-    AbstractITensorNetwork, ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
-using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
+    ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
+using OpenNetworks: VDMNetworks
 using NamedGraphs: vertices
 
 vectorizer = Vectorization.vectorizer
@@ -14,7 +13,6 @@ vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 vectorize_density_matrix = Vectorization.VectorizedDensityMatrix
 VectorizedDensityMatrix = Vectorization.VectorizedDensityMatrix
-vectorize_density_matrix! = Vectorization.vectorize_density_matrix!
 basespace = Vectorization.basespace
 VDMNetwork = VDMNetworks.VDMNetwork
 
@@ -145,6 +143,21 @@ function opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
     return od
 end
 
+"""
+opdouble(o::ITensor, rho::VectorizedDensityMatrix, unvectorizedsites::Vector{<:Index{}})::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+- `rho::VectorizedDensityMatrix`: The vectorized density matrix to be used.
+- `unvectorizedsites::Vector{<:Index{}}`: The unvectorized sites to be used.
+
+Doubles the ITensor by applying the vectorization process to it.
+The unvectorized sites provide the locations of the indices from VectorizedDensityMatrix,
+which are used as the indices of the doubled ITensor.
+
+"""
+
+
+
 function opdouble(
     o::ITensor,
     rho::Vectorization.VectorizedDensityMatrix,
@@ -160,6 +173,21 @@ function opdouble(
     end
     return opdouble(o, fatinds)
 end
+
+"""
+opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+- `ρ::VDMNetwork{V}`: The vectorized density matrix network to be used.
+- `V`: The type of the vectorized density matrix network.
+
+Doubles the ITensor by applying the vectorization process to it.
+The indices from the ITensor `o` are matched to the indices 
+from the unvectorizedinds of VDMNetwor `ρ`. The corresponding
+vectorized indices are used as the indices of the doubled ITensor.
+
+"""
+
 
 function opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor where {V}
     indices = collect(inds(o; plev=0))
