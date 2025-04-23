@@ -12,11 +12,24 @@ using ITensorNetworks:
     gauge_error,
     apply
 using ITensors: ITensors, ITensor, inds, plev, findsite
-using OpenNetworks: Channels, NoisyCircuits, ProgressSettings, Gates.Gate
+using OpenNetworks: NoisyCircuits, ProgressSettings, Gates.Gate
 using ProgressMeter
 using SplitApplyCombine: group
 
 default_progress_kwargs = ProgressSettings.default_progress_kwargs
+
+"""
+    prepare_noiseless_circuit(qc::Vector{Gate}, sites::ITensorNetworks.IndsNetwork)
+    
+    Arguments:
+    qc::Vector{Gate}
+        The quantum circuit represented as a vector of Gate objects.
+    sites::ITensorNetworks.IndsNetwork
+        The ITensorNetwork representing the quantum state.
+
+    Returns a vector of ITensors representing the noiseless circuit.
+
+"""
 
 function prepare_noiseless_circuit(qc::Vector{Gate}, sites::ITensorNetworks.IndsNetwork)
     gate_list = Vector{ITensor}()
@@ -30,6 +43,27 @@ function prepare_noiseless_circuit(qc::Vector{Gate}, sites::ITensorNetworks.Inds
     end
     return gate_list
 end
+
+"""
+    run_compiled_circuit(ψ::ITensorNetworks.ITensorNetwork, circuit::Vector{ITensor}, regauge_frequency::Integer=50; progress_kwargs=default_progress_kwargs, cache_update_kwargs, apply_kwargs)::ITensorNetworks.ITensorNetwork
+
+    Arguments:
+    ψ::ITensorNetworks.ITensorNetwork
+        The initial state of the quantum circuit.
+    circuit::Vector{ITensor}
+        The vector of ITensors representing the noiseless circuit.
+    regauge_frequency::Integer
+        The frequency at which to regauge the network.
+    progress_kwargs::Dict{Symbol, Any}
+        Additional arguments for the progress bar.
+    cache_update_kwargs::Dict{Symbol, Any}
+        Additional arguments for the cache update.
+    apply_kwargs::Dict{Symbol, Any}
+        Additional arguments for the apply function.
+
+    Returns the evolved ITensorNetwork after applying the circuit to intial state ψ.
+
+"""
 
 function run_compiled_circuit(
     ψ::ITensorNetworks.ITensorNetwork,
