@@ -3,9 +3,6 @@ using ITensorsOpenSystems: Vectorization
 using ITensorNetworks: ⊗, prime, dag, ITensorNetworks, siteinds, contract
 using ITensors: ITensors, op
 using OpenNetworks: VectorizationNetworks, Utils
-using Random
-using LinearAlgebra
-using Graphs
 
 swapprime = Utils.swapprime
 

@@ -17,6 +17,40 @@ function typenarrow!(d::Dict{<:Any,<:Any})
 end
 =#
 
+"""
+    parse_circuit(circuit_path::String)::Vector{Gate}
+
+    Arguments
+    circuit_path::String
+        The path to the JSON file containing the circuit.
+
+    Parses the JSON file at the given path and returns a vector of Gate objects.
+    Note that the JSON file must have correct format e.g.:
+
+    
+    [
+        {
+            "Name": "CNOT",
+            "Qubits": [0, 1],
+            "Params": []
+        },
+        {
+            "Name": "Rz",
+            "Qubits": [2],
+            "Params": [0.2]
+        }
+    ]
+    
+    See example_circuits folder for example circuits.
+
+    # Examples
+    ```julia
+    using OpenNetworks: CustomParsing
+
+    circuit = CustomParsing.parse_circuit("path/to/circuit.json")
+    ```
+"""
+
 function parse_circuit(circuit_path::String)::Vector{Gate}
     circuit = JSON.parsefile(circuit_path)
     parsed_circuit = Vector{Gate}()

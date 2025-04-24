@@ -1,19 +1,36 @@
 module Lindblad
 export lindbladevolve, trotterize
+
 using ITensors
-using ITensorMPS
-using ITensorsOpenSystems:
-    ITensorsOpenSystems, Vectorization, Vectorization.VectorizedDensityMatrix
+using ITensorsOpenSystems: Vectorization 
 using ITensorNetworks: ITensorNetworks, edges, src, dst, vertices
-using NamedGraphs: NamedGraphGenerators.named_grid
 using OpenNetworks:
-    OpenNetworks,
     Channels,
-    VectorizationNetworks,
     NoisyCircuits,
     Utils,
     GraphUtils.linenetwork,
     Channels.Channel
+
+
+"""
+    lindbladevolve(H::Sum, A::Vector{<:Sum}, Δt::Float64, fatsites::Vector{<:Index}, name::String="L")
+
+    Arguments
+    H::Sum
+        The Hamiltonian of the system.
+    A::Vector{<:Sum}
+        The Lindblad jump operators.
+    Δt::Float64
+        The time step for the evolution.
+    fatsites::Vector{<:Index}
+        The sites on which the Lindblad operator acts.
+    name::String="L"
+        The name of the channel.
+
+    Returns a Channel representing the Lindblad evolution operator, 
+    obtained from Hamiltonian H and jump operators A.
+
+"""
 
 function lindbladevolve(
     H::Sum, A::Vector{<:Sum}, Δt::Float64, fatsites::Vector{<:Index}, name::String="L"
@@ -48,7 +65,7 @@ function lindbladevolvecache!(
     name::String="L",
 )::Channels.Channel where {V}
     #= Checks cache to see if there is already a channel on those sites stored in cache, and if so uses it.
-        Otherwise, it generates a channel by Lindblad evolution, and sores it in cache.
+        Otherwise, it generates a channel by Lindblad evolution, and stores it in cache.
 
         Important note: this function should only be used in situations where there is only ever one channel that
         will act on the same individual qubits. =#
@@ -220,6 +237,31 @@ function secondordertrotter(
     end
     return NoisyCircuits.NoisyCircuit(channel_list, sites)
 end
+
+"""
+    trotterize(H::Sum, A::Vector{<:Sum}, steps::Int64, Δt::Float64, sites::ITensorNetworks.IndsNetwork{V}; order::Int64=2)
+
+    Arguments
+    H::Sum
+        The Hamiltonian of the system.
+    A::Vector{<:Sum}
+        The Lindblad jump operators.
+    steps::Int64
+        The number of Trotter steps.
+    Δt::Float64
+        The time step for the evolution.
+    sites::ITensorNetworks.IndsNetwork{V} OR Vector{<:ITensors.Index{}}
+        The sites on which the Lindblad operator acts.
+    order::Int64=2
+        The order of the Trotter decomposition (1 or 2).
+
+    Returns a NoisyCircuit representing the Trotterized evolution operator, 
+    obtained from Hamiltonian H and jump operators A, acting on the sites specified.
+    If the sites is an IndsNetwork, the underlying graph can have arbitrary connectivity,
+    if it is a vector of indices, the underlying graph must be a chain.
+
+"""
+
 
 function trotterize(
     H::Sum,

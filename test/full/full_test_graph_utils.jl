@@ -1,11 +1,6 @@
 using Test
-using ITensorsOpenSystems
-using ITensors
 using OpenNetworks:
-    VDMNetworks, Utils, Channels, VectorizationNetworks, GraphUtils, CustomParsing
-using Random
-using LinearAlgebra
-using Graphs
+    Utils, GraphUtils, CustomParsing
 using ITensorNetworks: vertices, edges, src, dst
 
 circ = CustomParsing.parse_circuit("example_circuits/circ.json")

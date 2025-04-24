@@ -1,9 +1,9 @@
+using Test
 using ITensors
-using ITensorMPS
 using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix, Vectorization.fatsiteinds
 using OpenNetworks:
     Lindblad, Channels, PreBuiltChannels, Evolution.run_circuit, Lindblad.trotterize
-using Test
+
 
 @testset "test convertprodop" begin
     H = OpSum()

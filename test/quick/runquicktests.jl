@@ -1,7 +1,4 @@
 
-@testset "TEBD" begin
-    include("test_tebd.jl")
-end
 
 @testset "Channel tests" begin
     include("test_channel.jl")
@@ -20,10 +17,6 @@ end
 end
 @testset "Circuit Compilation" begin
     include("test_circuit_compilation.jl")
-end
-
-@testset "Circuit Evolution" begin
-    include("test_circuit_evolution.jl")
 end
 
 @testset "Lindblad" begin

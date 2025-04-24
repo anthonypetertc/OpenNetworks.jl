@@ -1,5 +1,4 @@
 using Test
-using ITensorsOpenSystems
 using ITensors
 using OpenNetworks:
     VectorizationNetworks,
@@ -8,10 +7,9 @@ using OpenNetworks:
     VDMNetworks,
     PreBuiltChannels.depolarizing,
     PreBuiltChannels.dephasing
-using NamedGraphs: vertices
 using Random
-using LinearAlgebra
 using Graphs
+using LinearAlgebra: diagm
 using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
 
 opdouble = Channels.opdouble

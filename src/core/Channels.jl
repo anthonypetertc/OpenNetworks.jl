@@ -1,12 +1,11 @@
 module Channels
-export Channel, opdouble, Gate
+export Channel, opdouble
 
 using ITensors
-using ITensorMPS
 import ITensorsOpenSystems: Vectorization, Vectorization.fatsiteinds
 using ITensorNetworks:
-    AbstractITensorNetwork, ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
-using OpenNetworks: VectorizationNetworks, Utils, VDMNetworks
+    ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
+using OpenNetworks: VDMNetworks
 using NamedGraphs: vertices
 
 vectorizer = Vectorization.vectorizer
@@ -14,7 +13,6 @@ vectorizer_input = Vectorization.vectorizer_input
 vectorizer_output = Vectorization.vectorizer_output
 vectorize_density_matrix = Vectorization.VectorizedDensityMatrix
 VectorizedDensityMatrix = Vectorization.VectorizedDensityMatrix
-vectorize_density_matrix! = Vectorization.vectorize_density_matrix!
 basespace = Vectorization.basespace
 VDMNetwork = VDMNetworks.VDMNetwork
 
@@ -86,6 +84,18 @@ function ITensors.findsite(ρ::VDMNetwork{V}, ind::ITensors.Index)::V where {V}
     return findsite(ρ.network, ind)
 end
 
+
+"""
+opdouble(o::ITensor)::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+
+Doubles the ITensor by applying the vectorization process to it.
+Given an ITennsor `o`, it returns `o⊗o†` where `o†` is the conjugate transpose of `o`.
+The indices of the ITensor are vectorized.
+
+"""
+
 function opdouble(o::ITensor)::ITensor
     indices = collect(inds(o; plev=0))
     odag = addtags(dag(o), "dag")
@@ -110,6 +120,17 @@ function opdouble(o::ITensor)::ITensor
     return o
 end
 
+"""
+opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+- `fatinds::Vector{<:Index{}}`: The fat indices to be used for the doubling.
+
+Doubles the ITensor by applying the vectorization process to it. Uses 
+the provided fat indices as the indices of the doubled ITensor.
+
+"""
+
 function opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
     od = opdouble(o)
     oldfatinds = inds(od; plev=0)
@@ -121,6 +142,21 @@ function opdouble(o::ITensor, fatinds::Vector{<:Index{}})::ITensor
     end
     return od
 end
+
+"""
+opdouble(o::ITensor, rho::VectorizedDensityMatrix, unvectorizedsites::Vector{<:Index{}})::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+- `rho::VectorizedDensityMatrix`: The vectorized density matrix to be used.
+- `unvectorizedsites::Vector{<:Index{}}`: The unvectorized sites to be used.
+
+Doubles the ITensor by applying the vectorization process to it.
+The unvectorized sites provide the locations of the indices from VectorizedDensityMatrix,
+which are used as the indices of the doubled ITensor.
+
+"""
+
+
 
 function opdouble(
     o::ITensor,
@@ -137,6 +173,21 @@ function opdouble(
     end
     return opdouble(o, fatinds)
 end
+
+"""
+opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor
+Arguments:
+- `o::ITensor`: The ITensor to be doubled.
+- `ρ::VDMNetwork{V}`: The vectorized density matrix network to be used.
+- `V`: The type of the vectorized density matrix network.
+
+Doubles the ITensor by applying the vectorization process to it.
+The indices from the ITensor `o` are matched to the indices 
+from the unvectorizedinds of VDMNetwor `ρ`. The corresponding
+vectorized indices are used as the indices of the doubled ITensor.
+
+"""
+
 
 function opdouble(o::ITensor, ρ::VDMNetwork{V})::ITensor where {V}
     indices = collect(inds(o; plev=0))
@@ -180,6 +231,76 @@ function _krausindscheck(kraus_maps::Vector{ITensor})::Nothing
         @assert isa(noncommonind(kraus1, kraus), Nothing) "Kraus Operators are not acting on the same indices. Use identity maps if required."
     end
 end
+
+"""
+Channel
+
+A Channel is a struct which is designed to represent a quantum channel.
+It contains a name (for debugging purposes), and an ITensor (which 
+contains the quantum channel acting on a vectorized density matrix).
+
+# Examples
+```julia
+julia> s = siteinds("Qubit", 2)
+2-element Vector{Index{Int64}}:
+ (dim=2|id=286|"Qubit,Site,n=1")
+ (dim=2|id=835|"Qubit,Site,n=2")
+
+julia> oZ = op("Z", s[1])
+ITensor ord=2 (dim=2|id=286|"Qubit,Site,n=1")' (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+
+julia> oI = op("I", s[1])
+ITensor ord=2 (dim=2|id=286|"Qubit,Site,n=1")' (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+
+julia> p = 0.01
+0.01
+
+julia> kraus_maps = [sqrt(1-p)* oI, sqrt(p) * oZ]
+2-element Vector{ITensor}:
+ ITensor ord=2
+Dim 1: (dim=2|id=286|"Qubit,Site,n=1")'
+Dim 2: (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+ 2×2
+ 0.99498743710662  0.0
+ 0.0               0.99498743710662
+ ITensor ord=2
+Dim 1: (dim=2|id=286|"Qubit,Site,n=1")'
+Dim 2: (dim=2|id=286|"Qubit,Site,n=1")
+NDTensors.Dense{Float64, Vector{Float64}}
+ 2×2
+ 0.1   0.0
+ 0.0  -0.1
+
+ # Construct a dephasing Channel from the kraus maps.
+
+julia> dephasing = Channel("dephasing", kraus_maps)
+Channel dephasing with indices ((dim=4|id=282|"QubitVec,Site,n=1"), (dim=4|id=282|"QubitVec,Site,n=1")')
+```
+"""
+
+"""
+# Channel constructors
+
+    Channel(name::String, tensor::ITensor)::Channel
+    
+Condtruct a Channel from a name and an ITensor acting on vectorized indices.
+
+    Channel(name::String, kraus_maps::Vector{ITensor})::Channel
+Construct a Channel from a name and a vector of Kraus operators. 
+Kraus operators act on the unvectorized indices. They must satisfy the condition ΣK†K ≈ I.
+
+    Channel(name::String, kraus_maps::Vector{ITensor}, rho::Vectorization.VectorizedDensityMatrix, unvectorizedsiteinds::Vector{<:ITensors.Index{}}
+)::Channel
+Construct a Channel from a name, a vector of Kraus operators, a vectorized density matrix. 
+The resulting Channel is constructed to be compatible with indices of the vectorized density matrix.
+
+    Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork{V})::Channel
+Construct a Channel from a name, a vector of Kraus operators, and a VDMNetwork.
+The resulting Channel is constructed to be compatible with indices of the vectorized density matrix network.
+"""
 
 struct Channel
     name::String
@@ -246,11 +367,34 @@ function ITensors.apply(channel::Channel, ρ::MPS; kwargs...)::MPS
 end
 =#
 
+"""
+apply(channel::Channel, ρ::VectorizedDensityMatrix; kwargs...)
+
+Arguments:
+- `channel::Channel`: The channel to be applied.
+- `ρ::VectorizedDensityMatrix`: The vectorized density matrix to which the channel is applied.
+- `kwargs...`: Additional keyword arguments for the ITensor apply function.
+
+Applies the channel to the vectorized density matrix and returns the resulting vectorized density matrix.
+"""
+
 function ITensors.apply(
     channel::Channel, ρ::VectorizedDensityMatrix; kwargs...
 )::VectorizedDensityMatrix
     return ITensors.apply(channel.tensor, ρ; kwargs...)
 end
+
+"""
+apply(channel::Channel, ρ::VDMNetwork{V}; kwargs...)
+
+Arguments:
+- `channel::Channel`: The channel to be applied.
+- `ρ::VDMNetwork{V}`: The vectorized density matrix network to which the channel is applied.
+- `kwargs...`: Additional keyword arguments for the ITensor apply function.
+
+Applies the channel to the vectorized density matrix network and returns the resulting vectorized density matrix network.
+
+"""
 
 function ITensors.apply(
     channel::Channel, ρ::VDMNetwork{V}; kwargs...
@@ -279,6 +423,17 @@ function ITensors.apply(
     o2 = opdouble(o, ρ)
     return VDMNetwork(ITensorNetworks.apply(o2, ρ.network; kwargs...), ρ.unvectorizedinds)
 end
+
+"""
+compose(post::Channel, pre::Channel)::Channel
+Arguments:
+- `post::Channel`: The channel to be applied after the pre-channel.
+- `pre::Channel`: The channel to be applied before the post-channel.
+
+Composes two channels by multiplying their tensors and returns the resulting channel.
+
+"""
+
 
 function compose(post::Channel, pre::Channel)::Channel
     matching = [

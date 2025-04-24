@@ -1,25 +1,21 @@
 module Evolution
 export run_circuit
 
-using ITensors: ITensors, inds, op, plev, ITensor, Index
+using ITensors: ITensors, inds, op, plev, ITensor
 using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix
 using ITensorNetworks:
     ITensorNetworks,
     apply,
-    environment,
     ITensorNetwork,
     BeliefPropagationCache,
     norm_sqr_network,
     VidalITensorNetwork,
-    siteinds,
     update,
     gauge_error,
     vertices
 using OpenNetworks:
     Channels,
     Utils,
-    VectorizationNetworks,
-    VDMNetworks,
     NoiseModels,
     GraphUtils,
     Gates.Gate,
@@ -34,6 +30,23 @@ using OpenNetworks:
 using SplitApplyCombine: group
 using ProgressMeter
 
+"""
+    apply(ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...)
+    
+    Arguments
+    ρ::VDMNetwork
+        The vectorized density matrix network to which the circuit is applied.
+    noisy_circuit::NoisyCircuit
+        The noisy circuit to be applied to the density matrix network.
+    apply_kwargs...
+        Additional keyword arguments to pass to the apply function.
+
+    Applies the Channels in the noisy circuit to the vectorized density matrix network, 
+    one by one, in the order they are defined in the circuit.
+
+"""
+
+
 function ITensors.apply(
     ρ::VDMNetwork, noisy_circuit::NoisyCircuit; apply_kwargs...
 )::VDMNetwork
@@ -42,6 +55,32 @@ function ITensors.apply(
     end
     return ρ
 end
+
+"""
+    run_circuit(ρ::VDMNetwork, noisy_circuit::NoisyCircuit, regauge_frequency::Integer=50; progress_kwargs=default_progress_kwargs, cache_update_kwargs, apply_kwargs)
+
+    Arguments
+    ρ::VDMNetwork
+        The vectorized density matrix network to which the circuit is applied.
+    noisy_circuit::NoisyCircuit
+        The noisy circuit to be applied to the density matrix network.
+    regauge_frequency::Integer
+        The frequency at which to regauge the network.
+    progress_kwargs::Dict{Symbol, Any}
+        Additional arguments for the progress bar.
+    cache_update_kwargs::Dict{Symbol, Any}
+        Additional arguments for the cache update.
+    apply_kwargs...
+        Additional keyword arguments to pass to the apply function.
+
+   Evolves the vectorized density matrix network by the given noisy circuit,
+   using the Simple Update algorithm, and BP regauing at regular intervals.
+
+    !!! warning
+            This function depends on the ITensorNetworks package, which is 
+            pre-release software. It may break unexpectedly.
+
+"""
 
 function run_circuit(
     ρ::VDMNetwork,
@@ -90,9 +129,25 @@ function run_circuit(
 
     cache_ref = Ref{BeliefPropagationCache}(bp_cache)
     ψ_symm = ITensorNetwork(evolved_ψ; (cache!)=cache_ref)
-    evolved_ρ = VDMNetworks.VDMNetwork(ψ_symm, ρ.unvectorizedinds)
+    evolved_ρ = VDMNetwork(ψ_symm, ρ.unvectorizedinds)
     return evolved_ρ
 end
+
+"""
+    run_circuit(ρ::VectorizedDensityMatrix, noisy_circuit::NoisyCircuit; apply_kwargs...)
+
+    Arguments
+    ρ::VectorizedDensityMatrix
+        The vectorized density matrix to which the circuit is applied.
+    noisy_circuit::NoisyCircuit
+        The noisy circuit to be applied to the density matrix.
+    apply_kwargs...
+        Additional keyword arguments to pass to the apply function.
+
+    Evolves the vectorized density matrix by the given noisy circuit,
+    using TEBD. (Only works for nearest neighbour circuits on a line).
+
+"""
 
 function run_circuit(
     ρ::VectorizedDensityMatrix, noisy_circuit::NoisyCircuit; apply_kwargs...

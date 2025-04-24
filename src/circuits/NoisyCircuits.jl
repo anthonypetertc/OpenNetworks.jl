@@ -4,35 +4,41 @@ export NoisyCircuit
 using ITensors: ITensors, inds, op, plev, ITensor, Index
 using ITensorNetworks:
     ITensorNetworks,
-    apply,
-    environment,
     ITensorNetwork,
-    BeliefPropagationCache,
-    norm_sqr_network,
-    VidalITensorNetwork,
-    siteinds,
-    update,
-    gauge_error,
-    vertices
+    siteinds
 
-using ITensorsOpenSystems
 using OpenNetworks:
     Channels,
     Utils,
-    VectorizationNetworks,
-    VDMNetworks,
+    VDMNetworks.VDMNetwork,
     NoiseModels,
     GraphUtils,
     Gates.Gate,
-    ProgressSettings,
     Utils.findindextype
-using SplitApplyCombine: group
-using ProgressMeter
 
-VDMNetwork = VDMNetworks.VDMNetwork
 NoiseModel = NoiseModels.NoiseModel
 Channel = Channels.Channel
-default_progress_kwargs = ProgressSettings.default_progress_kwargs
+
+"""
+    NoisyCircuit
+    Represents a quantum circuit with noise built to act on a vectorized density matrix.
+
+    # NoisyCircuit constructors
+
+    NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
+
+    Arguments
+    channel_list::Vector{Channel}
+        The list of channels representing the noisy circuit.
+    fatsites::ITensorNetworks.IndsNetwork
+        The sites on which the channels act.
+    n_gates::Int
+        The number of gates in the circuit.
+    
+    A NoisyCircuit object represenets a quantum circuit with noise channels.
+    It contains a list of channels, the sites on which they act, and the number of gates in the circuit.
+
+"""
 
 struct NoisyCircuit{V}
     channel_list::Vector{Channel}
@@ -47,12 +53,40 @@ function Base.show(io::IO, noisycircuit::NoisyCircuit{V}) where {V}
     )
 end
 
-function NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModels.NoiseModel{V}) where V
+"""
+    NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModel{V})
+
+    Arguments
+    parsedcircuit::Vector{Gate}
+        The parsed circuit to which the noise model is applied.
+    noise_model::NoiseModel{V}
+        The noise model to be applied to the circuit.
+
+    Prepares a NoisyCircuit from a parsed circuit and a noise model,
+    by adding noise to the circuit according to the noise model.
+"""
+
+function NoisyCircuit(parsedcircuit::Vector{Gate}, noise_model::NoiseModel{V}) where V
     noisycircuit = add_noise_to_circuit(parsedcircuit, noise_model)
     compressedcircuit = absorb_single_qubit_gates(noisycircuit)
     n_gates = length(compressedcircuit)
     return NoisyCircuit(compressedcircuit, noise_model.fatsites, n_gates)
 end
+
+"""
+    NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
+
+    Arguments
+    channel_list::Vector{Channel}
+        The list of channels representing the noisy circuit.
+    fatsites::ITensorNetworks.IndsNetwork
+        The sites on which the channels act.
+    n_gates::Int
+        The number of gates in the circuit.
+
+    Prepares a NoisyCircuit from a list of channels and the sites on which they act.
+
+"""
 
 function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
     compressedcircuit = absorb_single_qubit_gates(channel_list)
@@ -60,6 +94,24 @@ function NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.I
     n_gates = length(compressedcircuit)
     return NoisyCircuit(compressedcircuit, fatsites, n_gates)
 end
+
+
+"""
+    NoisyCircuit(channel_list::Vector{Channel}, fatsites::Vector{<:ITensors.Index{}})
+
+    Arguments
+    channel_list::Vector{Channel}
+        The list of channels representing the noisy circuit.
+    fatsites::Vector{<:ITensors.Index{}}
+        The sites on which the channels act.
+    n_gates::Int
+        The number of gates in the circuit.
+
+    Prepares a NoisyCircuit from a list of channels and the sites on which they act.
+    (Where the sites are given as a vector of indices assumed to have
+    1-d connectivity rather than an IndsNetwork.)
+
+"""
 
 function NoisyCircuit(channel_list::Vector{Channel}, fatsites::Vector{<:ITensors.Index{}})
     compressedcircuit = absorb_single_qubit_gates(channel_list)
@@ -250,7 +302,7 @@ function add_noise_to_circuit(
     sites = noise_model.sites
     vsites = noise_model.fatsites
     ψ = ITensorNetwork(v -> "0", sites)::ITensorNetwork{V}
-    ρ = VDMNetworks.VDMNetwork(Utils.outer(ψ', ψ), sites, vsites)::VDMNetwork{V}
+    ρ = VDMNetwork(Utils.outer(ψ', ψ), sites, vsites)::VDMNetwork{V}
     channel_list = Vector{Channels.Channel}()
     for gate in qc
         qubits = gate.qubits

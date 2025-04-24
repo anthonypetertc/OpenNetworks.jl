@@ -1,13 +1,9 @@
-using ITensors
-using ITensorMPS
 using Test
+using ITensors
 using ITensorsOpenSystems: Vectorization.VectorizedDensityMatrix, Vectorization.fatsiteinds
 using OpenNetworks:
     NoisyCircuits.NoisyCircuit,
-    NoisyCircuits.compile_into_moments,
-    GraphUtils.linegraph,
     Lindblad.trotterize,
-    Utils.findindextype,
     OpenNetworks,
     Lindblad,
     Channels,

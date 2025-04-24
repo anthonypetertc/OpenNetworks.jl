@@ -6,8 +6,19 @@ using ITensorsOpenSystems:
     Vectorization.vectorizer_output,
     Vectorization.vectorizer
 
-using ITensorNetworks: ITensorNetwork, ITensorNetworks, IndsNetwork, vertices
+using ITensorNetworks: ITensorNetwork, IndsNetwork, vertices
 using ITensors: Index, ITensors, QN
+
+"""
+    VDMNetwork
+A structure to represent a vectorized density matrix, where the underlying tensor network
+can have an arbitrary 2-d graph structure.
+
+    network::ITensorNetwork{V}
+        The underlying ITensorNetwork representing the density matrix.
+    unvectorizedinds::IndsNetwork{V,Index}
+        The unvectorized indices of the state.
+"""
 
 struct VDMNetwork{V}
     network::ITensorNetwork{V}
@@ -17,6 +28,48 @@ end
 function Base.show(io::IO, ρ::VDMNetwork)
     return println(io, "VDMNetwork with underlying ITensorNetwork: $(ρ.network)")
 end
+
+"""
+# VDMNetwork Constructors
+
+    VDMNetwork(ρ::ITensorNetwork{V}, sites::IndsNetwork{V,Index}, fatsites::IndsNetwork{V,Index}) where {V}
+
+    Arguments:
+    ρ::ITensorNetwork{V}
+        The underlying ITensorNetwork representing the density matrix.
+    sites::IndsNetwork{V,Index}
+        The unvectorized indices of the state.
+    fatsites::IndsNetwork{V,Index}
+        The vectorized indices of the state.
+
+    Constructs a VDMNetwork from the given ITensorNetwork using fatsites as the vectorized indices.
+
+    # Examples
+```julia
+using ITensorsOpenSystems: Vectorization
+using ITensors
+using OpenNetworks: Utils, VDMNetworks
+using NamedGraphs: NamedGraphGenerators.named_grid
+using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
+
+
+#Prepare the site indices on a 2x2 square grid.
+dims = (2, 2)
+g = named_grid(dims)
+sites = siteinds("Qubit", square_g)
+vsites = Vectorization.fatsiteinds(square_sites)
+
+#Prepare a random state on this grid.
+χ = 4
+ψ = ITensorNetworks.random_tensornetwork(square_sites; link_space=χ)
+
+#Now build the density matrix ρ = |ψ><ψ| and the VDMNetwork.
+ρ = Utils.outer(square_rand_ψ', square_rand_ψ)
+ρ = VDMNetworks.VDMNetwork(square_rand_ρ, square_sites, square_vsites)
+
+```
+
+"""
 
 function VDMNetwork(
     ρ::ITensorNetwork{V}, sites::IndsNetwork{V,Index}, fatsites::IndsNetwork{V,Index}

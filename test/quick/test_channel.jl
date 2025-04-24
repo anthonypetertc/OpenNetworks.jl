@@ -5,7 +5,10 @@ using OpenNetworks: Utils, Channels, PreBuiltChannels.depolarizing
 using Random
 using LinearAlgebra
 using Graphs
-using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
+using ITensorNetworks: 
+    ITensorNetworks, 
+    siteinds, 
+    ITensorNetwork
 
 opdouble = Channels.opdouble
 apply = Channels.apply

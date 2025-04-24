@@ -3,8 +3,37 @@ export NoiseInstruction, prepare_noise_for_gate, NoiseModel
 
 using ITensors: ITensors, Index, plev, inds, tags
 using ITensorNetworks
-using ITensorsOpenSystems
-using OpenNetworks: Channels, Utils, VectorizationNetworks, Channels.tagstring, GraphUtils, Gates.Gate
+using OpenNetworks: Channels, Utils, Channels.tagstring, GraphUtils, Gates.Gate
+
+"""
+    NoiseInstruction
+    Used for representing noise on a quantum circuit, that can be 
+    incorporated into a noise model.
+
+    NoiseInstruction(
+        name_of_instruction::String,
+        channel::Channels.Channel,
+        index_ordering_of_channel::Vector{<:ITensors.Index{}},
+        name_of_gates::Set{<:AbstractString},
+        qubits_noise_applies_to::Set{<:ITensors.Index{}},
+    )
+
+    Arguments
+    name_of_instruction::String
+        The name of the noise instruction.
+    channel::Channels.Channel
+        The channel representing the noise.
+    index_ordering_of_channel::Vector{<:ITensors.Index{}}
+        The ordering of indices in the channel tensor.
+    name_of_gates::Set{<:AbstractString}
+        The names of the gates to which the noise applies.
+    qubits_noise_applies_to::Set{<:ITensors.Index{}}
+        The qubits to which the noise applies.
+    
+    A NoiseInstruction identifies a Channel that acts on a set of qubits,
+    following a specific set of gates.
+
+"""
 
 struct NoiseInstruction
     name_of_instruction::String
@@ -70,6 +99,77 @@ function prepare_noise_for_gate(
     end
     return Channels.Channel(noise_instruction.channel.name, new_tensor)
 end
+
+"""
+    NoiseModel
+    Representation of a noise model for a quantum circuit. Built from a set of noise instructions.
+
+    NoiseModel(
+        noise_instructions::Set{NoiseInstruction},
+        sites::Vector{ITensors.Index{V}},
+        fatsites::Vector{<:ITensors.Index{}},
+        qc::Vector{Gate}
+    )
+
+    Arguments
+    noise_instructions::Set{NoiseInstruction}
+        The set of noise instructions.
+    sites::Vector{ITensors.Index{V}}
+        The sites on which the noise acts.
+    fatsites::Vector{<:ITensors.Index{}}
+        The fat sites on which the noise acts.
+    qc::Vector{Gate}
+        The gates to which the noise applies.
+
+    A NoiseModel is a collection of NoiseInstructions that can be applied to a set of qubits.
+    It specifies what noise (in the form of channels) applies to which qubits, 
+    and which gates the noise follows. (Currently, only supports noise applied immediately after a gate.)
+
+    #Examples
+```julia
+using ITensorsOpenSystems: Vectorization
+using ITensors
+using OpenNetworks: 
+    Utils, 
+    VDMNetworks,
+    PreBuiltChannels.depolarizing,
+    NoiseModels.NoiseInstruction,
+    NoiseModels.NoiseModel
+using NamedGraphs: NamedGraphGenerators.named_grid
+using ITensorNetworks: ITensorNetworks, siteinds, ITensorNetwork
+
+
+#Prepare the site indices on a 2x2 square grid.
+dims = (2, 2)
+g = named_grid(dims)
+sites = siteinds("Qubit", square_g)
+fatsites = Vectorization.fatsiteinds(square_sites)
+
+#Use pre-built depolarizing channel.
+p = 0.005 #set parameter for depolarizing channel.
+dummyinds = ITensors.siteinds("Qubit", 2) #dummy indices for defining the channel.
+depol = depolarizing(p, dummyinds) #use pre-built channel.
+fatdummyinds = collect(inds(depol.tensor; plev=0)) #find the fat indices, depolarizing channel is symmetric so order of the indices doesn't matter.
+
+#Build the noise instruction.
+noiseinstruction = NoiseInstruction(
+    "depolarizing",
+    depol,
+    fatdummyinds,
+    Set(["CX"]), #name of gates the noise applies to.
+    Set([first(sites[v]) for v in vertices(sites)]),
+    )
+
+#Build the noise model.
+noisemodel = NoiseModel(
+    Set([noiseinstruction]), #Set of all noise instructions.
+    sites, # sites for the circuit the noise model will be applied to.
+    fatsites, #doubled site indices for the density matrix evolution.
+)
+
+```
+
+"""
 
 struct NoiseModel{V}
     noise_instructions::Set{NoiseInstruction}

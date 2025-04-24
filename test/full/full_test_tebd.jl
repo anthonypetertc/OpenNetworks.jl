@@ -3,10 +3,8 @@ using ITensorsOpenSystems:
     Vectorization.fatsiteinds,
     Vectorization.VectorizedDensityMatrix
 using OpenNetworks:
-    VectorizationNetworks,
     Utils,
     Channels,
-    GraphUtils,
     NoisyCircuits,
     NoiseModels,
     Circuits,
@@ -16,9 +14,6 @@ using OpenNetworks:
     Evolution,
     VDMNetworks.VDMNetwork,
     NoisyCircuits.NoisyCircuit
-using ITensorNetworks
-using ITensors
-using ITensorMPS
 
 
 
