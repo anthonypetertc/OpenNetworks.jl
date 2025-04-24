@@ -76,6 +76,10 @@ end
    Evolves the vectorized density matrix network by the given noisy circuit,
    using the Simple Update algorithm, and BP regauing at regular intervals.
 
+    !!! warning
+            This function depends on the ITensorNetworks package, which is 
+            pre-release software. It may break unexpectedly.
+
 """
 
 function run_circuit(

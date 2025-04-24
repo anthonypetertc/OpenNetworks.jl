@@ -29,6 +29,22 @@ VDMNetwork = VDMNetworks.VDMNetwork
     
     Vectorizers the indices of the input IndsNetwork and returns a new IndsNetwork with vectorized indices.
 
+    # Examples
+```julia
+using ITensorsOpenSystems: Vectorization
+using ITensors
+using NamedGraphs: NamedGraphGenerators.named_grid
+using ITensorNetworks: siteinds
+
+
+#Prepare the site indices on a 2x2 square grid.
+dims = (2, 2)
+g = named_grid(dims)
+sites = siteinds("Qubit", square_g)
+
+#Now we can vectorize the sites.
+vsites = Vectorization.fatsiteinds(square_sites)
+````
 """
 
 function Vectorization.fatsiteinds(

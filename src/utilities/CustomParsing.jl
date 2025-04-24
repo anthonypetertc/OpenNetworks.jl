@@ -42,6 +42,13 @@ end
     ]
     
     See example_circuits folder for example circuits.
+
+    # Examples
+    ```julia
+    using OpenNetworks: CustomParsing
+
+    circuit = CustomParsing.parse_circuit("path/to/circuit.json")
+    ```
 """
 
 function parse_circuit(circuit_path::String)::Vector{Gate}

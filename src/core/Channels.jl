@@ -281,6 +281,27 @@ Channel dephasing with indices ((dim=4|id=282|"QubitVec,Site,n=1"), (dim=4|id=28
 ```
 """
 
+"""
+# Channel constructors
+
+    Channel(name::String, tensor::ITensor)::Channel
+    
+Condtruct a Channel from a name and an ITensor acting on vectorized indices.
+
+    Channel(name::String, kraus_maps::Vector{ITensor})::Channel
+Construct a Channel from a name and a vector of Kraus operators. 
+Kraus operators act on the unvectorized indices. They must satisfy the condition ΣK†K ≈ I.
+
+    Channel(name::String, kraus_maps::Vector{ITensor}, rho::Vectorization.VectorizedDensityMatrix, unvectorizedsiteinds::Vector{<:ITensors.Index{}}
+)::Channel
+Construct a Channel from a name, a vector of Kraus operators, a vectorized density matrix. 
+The resulting Channel is constructed to be compatible with indices of the vectorized density matrix.
+
+    Channel(name::String, kraus_maps::Vector{ITensor}, ρ::VDMNetwork{V})::Channel
+Construct a Channel from a name, a vector of Kraus operators, and a VDMNetwork.
+The resulting Channel is constructed to be compatible with indices of the vectorized density matrix network.
+"""
+
 struct Channel
     name::String
     tensor::ITensor

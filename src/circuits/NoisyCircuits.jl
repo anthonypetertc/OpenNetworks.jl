@@ -20,6 +20,11 @@ NoiseModel = NoiseModels.NoiseModel
 Channel = Channels.Channel
 
 """
+    NoisyCircuit
+    Represents a quantum circuit with noise built to act on a vectorized density matrix.
+
+    # NoisyCircuit constructors
+
     NoisyCircuit(channel_list::Vector{Channel}, fatsites::ITensorNetworks.IndsNetwork)
 
     Arguments
