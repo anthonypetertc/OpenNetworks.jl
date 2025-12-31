@@ -6,10 +6,10 @@
 # OpenNetworks.jl
 Quantum systems are becoming increasingly important for engineering and scientific purposes, finding applications
 across quantum sensing, communications, and quantum computing. However, realistic quantum systems have dynamics 
-which is dominated by noise: uncontrolled interactions between the quantum systems and it's external environment.
+which are dominated by noise: uncontrolled interactions between the quantum system and it's external environment.
 
 Modelling the effects of noise on quantum systems is therefore an important and challenging problem. This repository
-contains an emulator that approximately models the effects of noise on 2d quantum systems. The approach taken involves
+contains an emulator that approximately models the effects of noise on 2d quantum systems. The approach taken uses
 tensor networks with loops, gauged by Belief Propagation. 
 
 ## Installation
